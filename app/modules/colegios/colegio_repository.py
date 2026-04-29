@@ -1,0 +1,28 @@
+from sqlalchemy.orm import Session
+
+from app.modules.colegios.colegio_model import ColegioModel
+
+
+class ColegioRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_id(self, colegio_id: int):
+        return self.db.query(ColegioModel).filter(ColegioModel.id_colegio == colegio_id).first()
+
+    def get_all(self, skip: int, limit: int):
+        return self.db.query(ColegioModel).offset(skip).limit(limit).all()
+
+    def count_all(self):
+        return self.db.query(ColegioModel).count()
+
+    def create(self, colegio: ColegioModel):
+        self.db.add(colegio)
+        self.db.commit()
+        self.db.refresh(colegio)
+        return colegio
+
+    def update(self, colegio: ColegioModel):
+        self.db.commit()
+        self.db.refresh(colegio)
+        return colegio

@@ -1,0 +1,18 @@
+from sqlalchemy import Column, Integer, String
+
+from app.db.database import Base
+
+
+class ColegioModel(Base):
+    __tablename__ = "colegio"
+
+    id_colegio = Column(Integer, primary_key=True, index=True)
+    codigo = Column(Integer, nullable=False, unique=True)
+    nombre = Column(String(255), nullable=False)
+    tipo = Column(String(20), nullable=False)
+    turno = Column(String(20), nullable=False)
+    departamento = Column(String(100), nullable=False)
+    municipio = Column(String(100), nullable=False)
+    calle = Column(String(255), nullable=True)
+    numero = Column(String(50), nullable=True)
+    estado = Column(String(20), nullable=False)
