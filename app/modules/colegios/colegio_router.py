@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.colegios.colegio_schema import ColegioCreateDTO, ColegioResponseDTO, ColegioUpdateDTO
@@ -27,14 +28,23 @@ def obtener_colegio(colegio_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ResponseBase[ColegioResponseDTO])
-def crear_colegio(data: ColegioCreateDTO, db: Session = Depends(get_db)):
+def crear_colegio(
+    data: ColegioCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = ColegioService(db)
     colegio = service.create(data)
     return ResponseBase(data=colegio, message="Operacion exitosa")
 
 
 @router.put("/{colegio_id}", response_model=ResponseBase[ColegioResponseDTO])
-def actualizar_colegio(colegio_id: int, data: ColegioUpdateDTO, db: Session = Depends(get_db)):
+def actualizar_colegio(
+    colegio_id: int,
+    data: ColegioUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = ColegioService(db)
     colegio = service.update(colegio_id, data)
     return ResponseBase(data=colegio, message="Operacion exitosa")

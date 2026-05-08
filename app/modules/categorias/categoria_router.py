@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.categorias.categoria_schema import CategoriaCreateDTO, CategoriaResponseDTO, CategoriaUpdateDTO
@@ -27,21 +28,34 @@ def obtener_categoria(categoria_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ResponseBase[CategoriaResponseDTO])
-def crear_categoria(data: CategoriaCreateDTO, db: Session = Depends(get_db)):
+def crear_categoria(
+    data: CategoriaCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = CategoriaService(db)
     categoria = service.create(data)
     return ResponseBase(data=categoria, message="Operacion exitosa")
 
 
 @router.put("/{categoria_id}", response_model=ResponseBase[CategoriaResponseDTO])
-def actualizar_categoria(categoria_id: int, data: CategoriaUpdateDTO, db: Session = Depends(get_db)):
+def actualizar_categoria(
+    categoria_id: int,
+    data: CategoriaUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = CategoriaService(db)
     categoria = service.update(categoria_id, data)
     return ResponseBase(data=categoria, message="Operacion exitosa")
 
 
 @router.delete("/{categoria_id}", response_model=ResponseBase[CategoriaResponseDTO])
-def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
+def eliminar_categoria(
+    categoria_id: int,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = CategoriaService(db)
     categoria = service.delete(categoria_id)
     return ResponseBase(data=categoria, message="Operacion exitosa")

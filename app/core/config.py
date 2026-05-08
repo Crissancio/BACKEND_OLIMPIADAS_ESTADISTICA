@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     db_name: str = ""
     app_env: str = "development"
     secret_key: str
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 1440
     port: int = 8000
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")

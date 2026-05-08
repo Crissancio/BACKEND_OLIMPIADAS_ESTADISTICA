@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.fases.fase_schema import (
@@ -35,21 +36,34 @@ def obtener_fase(fase_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ResponseBase[FaseResponseDTO])
-def crear_fase(data: FaseCreateDTO, db: Session = Depends(get_db)):
+def crear_fase(
+    data: FaseCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = FaseService(db)
     fase = service.create(data)
     return ResponseBase(data=fase, message="Operacion exitosa")
 
 
 @router.put("/{fase_id}", response_model=ResponseBase[FaseResponseDTO])
-def actualizar_fase(fase_id: int, data: FaseUpdateDTO, db: Session = Depends(get_db)):
+def actualizar_fase(
+    fase_id: int,
+    data: FaseUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = FaseService(db)
     fase = service.update(fase_id, data)
     return ResponseBase(data=fase, message="Operacion exitosa")
 
 
 @router.delete("/{fase_id}", response_model=ResponseBase[FaseResponseDTO])
-def eliminar_fase(fase_id: int, db: Session = Depends(get_db)):
+def eliminar_fase(
+    fase_id: int,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = FaseService(db)
     fase = service.get_by_id(fase_id)
     service.delete(fase_id)
@@ -57,14 +71,22 @@ def eliminar_fase(fase_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/prueba", response_model=ResponseBase[FasePruebaResponseDTO])
-def crear_fase_prueba(data: FasePruebaCreateDTO, db: Session = Depends(get_db)):
+def crear_fase_prueba(
+    data: FasePruebaCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = FaseService(db)
     resultado = service.create_fase_prueba(data)
     return ResponseBase(data=resultado, message="Operacion exitosa")
 
 
 @router.post("/preparacion", response_model=ResponseBase[FasePreparacionResponseDTO])
-def crear_fase_preparacion(data: FasePreparacionCreateDTO, db: Session = Depends(get_db)):
+def crear_fase_preparacion(
+    data: FasePreparacionCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = FaseService(db)
     resultado = service.create_fase_preparacion(data)
     return ResponseBase(data=resultado, message="Operacion exitosa")

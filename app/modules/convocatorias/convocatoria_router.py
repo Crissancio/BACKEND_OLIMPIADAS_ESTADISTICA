@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.convocatorias.convocatoria_schema import (
@@ -31,7 +32,11 @@ def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ResponseBase[ConvocatoriaResponseDTO])
-def crear_convocatoria(data: ConvocatoriaCreateDTO, db: Session = Depends(get_db)):
+def crear_convocatoria(
+    data: ConvocatoriaCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = ConvocatoriaService(db)
     convocatoria = service.create(data)
     return ResponseBase(data=convocatoria, message="Operacion exitosa")
@@ -39,7 +44,10 @@ def crear_convocatoria(data: ConvocatoriaCreateDTO, db: Session = Depends(get_db
 
 @router.put("/{convocatoria_id}", response_model=ResponseBase[ConvocatoriaResponseDTO])
 def actualizar_convocatoria(
-    convocatoria_id: int, data: ConvocatoriaUpdateDTO, db: Session = Depends(get_db)
+    convocatoria_id: int,
+    data: ConvocatoriaUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
 ):
     service = ConvocatoriaService(db)
     convocatoria = service.update(convocatoria_id, data)
@@ -47,7 +55,11 @@ def actualizar_convocatoria(
 
 
 @router.delete("/{convocatoria_id}", response_model=ResponseBase[ConvocatoriaResponseDTO])
-def eliminar_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
+def eliminar_convocatoria(
+    convocatoria_id: int,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = ConvocatoriaService(db)
     convocatoria = service.get_by_id(convocatoria_id)
     service.delete(convocatoria_id)

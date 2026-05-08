@@ -18,6 +18,14 @@ class BusinessRuleError(Exception):
     pass
 
 
+class AuthenticationError(Exception):
+    pass
+
+
+class UnauthorizedError(Exception):
+    pass
+
+
 def _error_response(message: str, status_code: int) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"success": False, "error": message})
 
@@ -38,6 +46,14 @@ def register_exception_handlers(app):
     @app.exception_handler(BusinessRuleError)
     async def business_rule_error_handler(request: Request, exc: BusinessRuleError):
         return _error_response(str(exc), 422)
+
+    @app.exception_handler(AuthenticationError)
+    async def authentication_error_handler(request: Request, exc: AuthenticationError):
+        return _error_response(str(exc), 401)
+
+    @app.exception_handler(UnauthorizedError)
+    async def unauthorized_error_handler(request: Request, exc: UnauthorizedError):
+        return _error_response(str(exc), 401)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):

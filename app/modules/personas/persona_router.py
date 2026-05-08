@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.personas.persona_schema import (
@@ -45,21 +46,33 @@ def listar_colaboradores(page: int = 1, limit: int = 10, db: Session = Depends(g
 
 
 @router.post("/estudiantes", response_model=ResponseBase[EstudianteResponseDTO])
-def crear_estudiante(data: EstudianteCreateDTO, db: Session = Depends(get_db)):
+def crear_estudiante(
+    data: EstudianteCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = PersonaService(db)
     estudiante = service.create_estudiante(data)
     return ResponseBase(data=estudiante, message="Operacion exitosa")
 
 
 @router.post("/directores", response_model=ResponseBase[DirectorResponseDTO])
-def crear_director(data: DirectorCreateDTO, db: Session = Depends(get_db)):
+def crear_director(
+    data: DirectorCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = PersonaService(db)
     director = service.create_director(data)
     return ResponseBase(data=director, message="Operacion exitosa")
 
 
 @router.post("/colaboradores", response_model=ResponseBase[ColaboradorResponseDTO])
-def crear_colaborador(data: ColaboradorCreateDTO, db: Session = Depends(get_db)):
+def crear_colaborador(
+    data: ColaboradorCreateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
     service = PersonaService(db)
     colaborador = service.create_colaborador(data)
     return ResponseBase(data=colaborador, message="Operacion exitosa")
