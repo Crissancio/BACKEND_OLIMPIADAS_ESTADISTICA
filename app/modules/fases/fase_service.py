@@ -44,7 +44,7 @@ class FaseService:
         self.repository.delete(fase)
 
     def create_fase_prueba(self, data: FasePruebaCreateDTO):
-        with self.db.begin():
+        try:
             fase = FaseModel(
                 id_categoria_fk=data.id_categoria_fk,
                 nombre_fase=data.nombre_fase,
@@ -62,6 +62,10 @@ class FaseService:
                 lugar_realizacion=data.lugar_realizacion,
             )
             self.db.add(fase_prueba)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
 
         self.db.refresh(fase)
         self.db.refresh(fase_prueba)
@@ -79,7 +83,7 @@ class FaseService:
         }
 
     def create_fase_preparacion(self, data: FasePreparacionCreateDTO):
-        with self.db.begin():
+        try:
             fase = FaseModel(
                 id_categoria_fk=data.id_categoria_fk,
                 nombre_fase=data.nombre_fase,
@@ -95,6 +99,10 @@ class FaseService:
                 fecha_fin=data.fecha_fin,
             )
             self.db.add(fase_preparacion)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
 
         self.db.refresh(fase)
         self.db.refresh(fase_preparacion)
