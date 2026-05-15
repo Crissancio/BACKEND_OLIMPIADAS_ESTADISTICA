@@ -69,6 +69,7 @@ class DirectorResponseDTO(DirectorBaseDTO):
 class ColaboradorBaseDTO(BaseModel):
     presentacion: Optional[str] = None
     rol: str
+    tipo: str
     correo: str
 
 

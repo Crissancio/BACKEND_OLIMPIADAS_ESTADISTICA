@@ -28,6 +28,12 @@ class FaseService:
         total = self.repository.count_all()
         return items, total
 
+    def get_by_categoria(self, categoria_id: int, page: int, limit: int):
+        skip = (page - 1) * limit
+        items = self.repository.get_by_categoria(categoria_id, skip=skip, limit=limit)
+        total = self.repository.count_by_categoria(categoria_id)
+        return items, total
+
     def create(self, fase_data: FaseCreateDTO):
         fase = FaseModel(**fase_data.model_dump())
         return self.repository.create(fase)

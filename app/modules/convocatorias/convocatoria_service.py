@@ -46,3 +46,12 @@ class ConvocatoriaService:
     def delete(self, convocatoria_id: int):
         convocatoria = self.get_by_id(convocatoria_id)
         raise BusinessRuleError("No se puede eliminar una convocatoria")
+
+    def get_activa_o_reciente(self):
+        convocatoria = self.repository.get_active()
+        if convocatoria:
+            return convocatoria
+        convocatoria = self.repository.get_last_finalizada()
+        if not convocatoria:
+            raise NotFoundError("No hay convocatorias disponibles")
+        return convocatoria

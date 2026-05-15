@@ -72,6 +72,42 @@ class PersonaService:
                 "materno": persona.materno,
                 "presentacion": colaborador.presentacion,
                 "rol": colaborador.rol,
+                "tipo": colaborador.tipo,
+                "correo": colaborador.correo,
+            }
+            for colaborador, persona in rows
+        ]
+        return items, total
+
+    def get_personal_by_tipo(self, tipo: str, page: int, limit: int):
+        skip = (page - 1) * limit
+        if tipo == "DIRECTOR":
+            rows = self.repository.list_directores(skip=skip, limit=limit)
+            total = self.repository.count_directores()
+            items = [
+                {
+                    "id_director": director.id_director,
+                    "nombres": persona.nombres,
+                    "paterno": persona.paterno,
+                    "materno": persona.materno,
+                    "telefono_1": director.telefono_1,
+                    "telefono_2": director.telefono_2,
+                }
+                for director, persona in rows
+            ]
+            return items, total
+
+        rows = self.repository.list_colaboradores_by_tipo(tipo, skip=skip, limit=limit)
+        total = self.repository.count_colaboradores_by_tipo(tipo)
+        items = [
+            {
+                "id_colaborador": colaborador.id_colaborador,
+                "nombres": persona.nombres,
+                "paterno": persona.paterno,
+                "materno": persona.materno,
+                "presentacion": colaborador.presentacion,
+                "rol": colaborador.rol,
+                "tipo": colaborador.tipo,
                 "correo": colaborador.correo,
             }
             for colaborador, persona in rows
@@ -138,6 +174,7 @@ class PersonaService:
                 id_colaborador=persona.id_persona,
                 presentacion=data.presentacion,
                 rol=data.rol,
+                tipo=data.tipo,
                 correo=data.correo,
             )
             self.repository.create_colaborador(colaborador)
@@ -149,6 +186,7 @@ class PersonaService:
             "materno": persona.materno,
             "presentacion": colaborador.presentacion,
             "rol": colaborador.rol,
+            "tipo": colaborador.tipo,
             "correo": colaborador.correo,
         }
 

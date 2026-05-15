@@ -36,6 +36,13 @@ class CategoriaRepository:
             .count()
         )
 
+    def get_resumen_by_convocatoria(self, convocatoria_id: int):
+        return (
+            self.db.query(CategoriaModel)
+            .filter(CategoriaModel.id_convocatoria == convocatoria_id)
+            .all()
+        )
+
     def create(self, categoria: CategoriaModel):
         self.db.add(categoria)
         self.db.commit()

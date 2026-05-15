@@ -1,0 +1,185 @@
+import asyncio
+
+from app.modules.avisos.aviso_service import AvisoService
+from app.modules.categorias.categoria_service import CategoriaService
+from app.modules.convocatorias.convocatoria_service import ConvocatoriaService
+from app.modules.fases.fase_service import FaseService
+from app.modules.materiales.material_service import MaterialService
+from app.modules.personas.persona_service import PersonaService
+
+
+class PublicBffService:
+    def __init__(
+        self,
+        convocatoria_service: ConvocatoriaService,
+        categoria_service: CategoriaService,
+        aviso_service: AvisoService,
+        material_service: MaterialService,
+        fase_service: FaseService,
+        persona_service: PersonaService,
+    ):
+        self.convocatoria_service = convocatoria_service
+        self.categoria_service = categoria_service
+        self.aviso_service = aviso_service
+        self.material_service = material_service
+        self.fase_service = fase_service
+        self.persona_service = persona_service
+
+    async def get_inicio(self):
+        convocatoria = await asyncio.to_thread(self._safe_get_convocatoria)
+        avisos_task = asyncio.to_thread(self.aviso_service.get_recientes, 4)
+
+        if convocatoria is None:
+            avisos = await avisos_task
+            return {
+                "convocatoria": None,
+                "material_principal": self._format_material_principal(None),
+                "categorias": [],
+                "avisos": self._format_avisos(avisos or []),
+            }
+
+        categorias_task = asyncio.to_thread(
+            self.categoria_service.get_resumen_by_convocatoria, convocatoria.id_convocatoria
+        )
+        material_principal_task = asyncio.to_thread(
+            self._safe_get_material_principal_inicio,
+            convocatoria.id_convocatoria,
+        )
+        categorias, avisos, material_principal = await asyncio.gather(categorias_task, avisos_task, material_principal_task)
+        return {
+            "convocatoria": convocatoria,
+            "material_principal": self._format_material_principal(material_principal),
+            "categorias": self._format_categorias_inicio(convocatoria, categorias or []),
+            "avisos": self._format_avisos(avisos or []),
+        }
+
+    async def get_personal(self, tipo: str):
+        try:
+            items, _ = await asyncio.to_thread(
+                self.persona_service.get_personal_by_tipo, tipo, 1, 1000
+            )
+        except Exception:
+            return []
+        return items or []
+
+    async def get_convocatoria_detalle(self, convocatoria_id: int):
+        convocatoria = await asyncio.to_thread(self._safe_get_convocatoria_by_id, convocatoria_id)
+        if convocatoria is None:
+            return {
+                "convocatoria": None,
+                "categorias": [],
+                "materiales": [],
+                "afiche": None,
+                "convocatoria_documento": None,
+                "reglamento": None,
+            }
+        categorias_task = asyncio.to_thread(
+            self.categoria_service.get_resumen_by_convocatoria, convocatoria_id
+        )
+        materiales_task = asyncio.to_thread(self.material_service.get_public_by_convocatoria, convocatoria_id, 1, 100)
+        afiche_task = asyncio.to_thread(
+            self._safe_get_material_principal_public,
+            convocatoria_id,
+            "AFICHE",
+        )
+        convocatoria_doc_task = asyncio.to_thread(
+            self._safe_get_material_principal_public,
+            convocatoria_id,
+            "CONVOCATORIA",
+        )
+        reglamento_task = asyncio.to_thread(
+            self._safe_get_material_principal_public,
+            convocatoria_id,
+            "REGLAMENTO",
+        )
+        categorias, materiales_data, afiche, convocatoria_doc, reglamento = await asyncio.gather(
+            categorias_task,
+            materiales_task,
+            afiche_task,
+            convocatoria_doc_task,
+            reglamento_task,
+        )
+        materiales = materiales_data[0]
+        return {
+            "convocatoria": convocatoria,
+            "categorias": categorias or [],
+            "materiales": materiales or [],
+            "afiche": afiche,
+            "convocatoria_documento": convocatoria_doc,
+            "reglamento": reglamento,
+        }
+
+    async def get_fases_por_categoria(self, categoria_id: int):
+        try:
+            items, _ = await asyncio.to_thread(
+                self.fase_service.get_by_categoria, categoria_id, 1, 1000
+            )
+        except Exception:
+            return []
+        return items or []
+
+    async def get_materiales_por_fase(self, fase_id: int):
+        try:
+            items, _ = await asyncio.to_thread(
+                self.material_service.get_public_by_fase, fase_id, 1, 1000
+            )
+        except Exception:
+            return []
+        return items or []
+
+    def _safe_get_convocatoria(self):
+        try:
+            return self.convocatoria_service.get_activa_o_reciente()
+        except Exception:
+            return None
+
+    def _safe_get_convocatoria_by_id(self, convocatoria_id: int):
+        try:
+            return self.convocatoria_service.get_by_id(convocatoria_id)
+        except Exception:
+            return None
+
+    def _safe_get_material_principal_public(self, convocatoria_id: int, importancia_tipo: str):
+        try:
+            return self.material_service.get_material_principal_public(convocatoria_id, importancia_tipo)
+        except Exception:
+            return None
+
+    def _safe_get_material_principal_inicio(self, convocatoria_id: int):
+        for importancia_tipo in ("AFICHE", "CONVOCATORIA"):
+            material = self._safe_get_material_principal_public(convocatoria_id, importancia_tipo)
+            if material is not None:
+                return material
+        return None
+
+    def _format_material_principal(self, material):
+        if material is None:
+            return {
+                "enlace_acceso": None,
+                "mensaje": "No existe material principal AFICHE o CONVOCATORIA para la convocatoria",
+            }
+        return {
+            "enlace_acceso": material.enlace_acceso,
+            "mensaje": None,
+        }
+
+    def _format_categorias_inicio(self, convocatoria, categorias):
+        return [
+            {
+                "nombre_convocatoria": convocatoria.nombre_convocatoria,
+                "nivel": categoria["nivel"] if isinstance(categoria, dict) else categoria.nivel,
+                "curso": categoria["curso"] if isinstance(categoria, dict) else categoria.curso,
+            }
+            for categoria in categorias
+        ]
+
+    def _format_avisos(self, avisos):
+        return [
+            {
+                "titulo": aviso.titulo,
+                "descripcion": aviso.descripcion,
+                "tipo": aviso.tipo,
+                "fecha_publicacion": aviso.fecha_publicacion.date() if aviso.fecha_publicacion else None,
+            }
+            for aviso in avisos
+        ]

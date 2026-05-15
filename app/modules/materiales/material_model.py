@@ -9,6 +9,7 @@ material_convocatoria = Table(
     Column("id_convocatoria", Integer, ForeignKey("convocatoria.id_convocatoria"), primary_key=True),
     Column("id_material", Integer, ForeignKey("material.id_material"), primary_key=True),
     Column("fecha_creacion", DateTime, server_default=func.now()),
+    Column("importancia_tipo", String(20), nullable=False, server_default="OTRO"),
 )
 
 material_categoria = Table(
@@ -36,5 +37,6 @@ class MaterialModel(Base):
     enlace_acceso = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=True)
     fecha_creacion = Column(DateTime, nullable=False, server_default=func.now())
+    visibilidad = Column(String(20), nullable=False, server_default="PRIVADO")
     tipo_material = Column(String(30), nullable=False)
     fecha_publicacion = Column(DateTime, nullable=True)

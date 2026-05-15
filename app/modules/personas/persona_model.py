@@ -40,4 +40,5 @@ class ColaboradorModel(Base):
     id_colaborador = Column(Integer, ForeignKey("persona.id_persona"), primary_key=True)
     presentacion = Column(Text, nullable=True)
     rol = Column(String(100), nullable=False)
+    tipo = Column(String(30), nullable=False)
     correo = Column(String(255), nullable=False)

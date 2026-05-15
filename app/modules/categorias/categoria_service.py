@@ -28,6 +28,18 @@ class CategoriaService:
         total = self.repository.count_by_convocatoria(convocatoria_id)
         return items, total
 
+    def get_resumen_by_convocatoria(self, convocatoria_id: int):
+        categorias = self.repository.get_resumen_by_convocatoria(convocatoria_id)
+        return [
+            {
+                "id_categoria": categoria.id_categoria,
+                "nombre_categoria": categoria.nombre_categoria,
+                "nivel": categoria.nivel,
+                "curso": categoria.curso,
+            }
+            for categoria in categorias
+        ]
+
     def create(self, data: CategoriaCreateDTO):
         categoria = CategoriaModel(**data.model_dump())
         return self.repository.create(categoria)

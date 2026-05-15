@@ -16,6 +16,18 @@ class FaseRepository:
     def count_all(self):
         return self.db.query(FaseModel).count()
 
+    def get_by_categoria(self, categoria_id: int, skip: int, limit: int):
+        return (
+            self.db.query(FaseModel)
+            .filter(FaseModel.id_categoria_fk == categoria_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def count_by_categoria(self, categoria_id: int):
+        return self.db.query(FaseModel).filter(FaseModel.id_categoria_fk == categoria_id).count()
+
     def create(self, fase: FaseModel):
         self.db.add(fase)
         self.db.commit()
