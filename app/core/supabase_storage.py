@@ -48,7 +48,10 @@ class SupabaseStorageClient:
                 },
             )
         except Exception as exc:
-            raise BusinessRuleError("No se pudo subir el archivo a Supabase") from exc
+            detalle = str(exc) or "Error desconocido"
+            raise BusinessRuleError(
+                f"No se pudo subir el archivo a Supabase: {detalle}"
+            ) from exc
 
         encoded_path = parse.quote(storage_path)
         return f"{self.base_url}/storage/v1/object/public/{self.bucket}/{encoded_path}"
