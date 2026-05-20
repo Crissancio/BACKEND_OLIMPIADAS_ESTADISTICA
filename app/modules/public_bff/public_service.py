@@ -116,7 +116,8 @@ class PublicBffService:
             )
         except Exception:
             return []
-        return self._format_materiales_simples(items or [])
+        fases = [self._format_fase_publica(fase) for fase in items or []]
+        return [fase for fase in fases if fase is not None]
 
     async def get_materiales_por_fase(self, fase_id: int):
         try:
@@ -201,6 +202,39 @@ class PublicBffService:
             }
             for material in materiales
         ]
+
+    def _format_fase_publica(self, fase):
+        fase_prueba = self.fase_service.repository.get_fase_prueba(fase.id_fase)
+        if fase_prueba is not None:
+            return {
+                "id_fase": fase.id_fase,
+                "id_categoria_fk": fase.id_categoria_fk,
+                "nombre_fase": fase.nombre_fase,
+                "descripcion": fase.descripcion,
+                "modalidad": fase.modalidad,
+                "estado": fase.estado,
+                "tipo_fase": "PRUEBA",
+                "id_fase_anterior": fase_prueba.id_fase_anterior,
+                "criterio_aprobacion": fase_prueba.criterio_aprobacion,
+                "fecha_realizacion": fase_prueba.fecha_realizacion,
+                "lugar_realizacion": fase_prueba.lugar_realizacion,
+            }
+
+        fase_preparacion = self.fase_service.repository.get_fase_preparacion(fase.id_fase)
+        if fase_preparacion is not None:
+            return {
+                "id_fase": fase.id_fase,
+                "id_categoria_fk": fase.id_categoria_fk,
+                "nombre_fase": fase.nombre_fase,
+                "descripcion": fase.descripcion,
+                "modalidad": fase.modalidad,
+                "estado": fase.estado,
+                "tipo_fase": "PREPARACION",
+                "fecha_inicio": fase_preparacion.fecha_inicio,
+                "fecha_fin": fase_preparacion.fecha_fin,
+            }
+
+        return None
 
     def _format_avisos(self, avisos):
         return [

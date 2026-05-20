@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
@@ -34,6 +34,32 @@ class MaterialPublicoSimpleDTO(BaseModel):
     enlace_acceso: str
     nombre_material: str
     descripcion: Optional[str] = None
+
+
+class FasePreparacionPublicaDTO(BaseModel):
+    id_fase: int
+    id_categoria_fk: int
+    nombre_fase: str
+    descripcion: Optional[str] = None
+    modalidad: str
+    estado: str
+    tipo_fase: str = "PREPARACION"
+    fecha_inicio: Optional[datetime] = None
+    fecha_fin: Optional[datetime] = None
+
+
+class FasePruebaPublicaDTO(BaseModel):
+    id_fase: int
+    id_categoria_fk: int
+    nombre_fase: str
+    descripcion: Optional[str] = None
+    modalidad: str
+    estado: str
+    tipo_fase: str = "PRUEBA"
+    id_fase_anterior: Optional[int] = None
+    criterio_aprobacion: Optional[int] = None
+    fecha_realizacion: Optional[datetime] = None
+    lugar_realizacion: Optional[str] = None
 
 
 class AvisoInicioDTO(BaseModel):

@@ -6,11 +6,16 @@ from app.db.database import get_db
 from app.modules.avisos.aviso_service import AvisoService
 from app.modules.categorias.categoria_service import CategoriaService
 from app.modules.convocatorias.convocatoria_service import ConvocatoriaService
-from app.modules.fases.fase_schema import FaseResponseDTO
 from app.modules.fases.fase_service import FaseService
 from app.modules.materiales.material_service import MaterialService
 from app.modules.personas.persona_service import PersonaService
-from app.modules.public_bff.public_schema import ConvocatoriaDetalleDTO, InicioResponseDTO, MaterialPublicoSimpleDTO
+from app.modules.public_bff.public_schema import (
+    ConvocatoriaDetalleDTO,
+    FasePreparacionPublicaDTO,
+    FasePruebaPublicaDTO,
+    InicioResponseDTO,
+    MaterialPublicoSimpleDTO,
+)
 from app.modules.public_bff.public_service import PublicBffService
 
 
@@ -52,7 +57,10 @@ async def obtener_convocatoria_detalle(convocatoria_id: int, db: Session = Depen
     return ResponseBase(data=data, message="Operacion exitosa")
 
 
-@router.get("/categorias/{categoria_id}/fases", response_model=ResponseBase[list[FaseResponseDTO]])
+@router.get(
+    "/categorias/{categoria_id}/fases",
+    response_model=ResponseBase[list[FasePreparacionPublicaDTO | FasePruebaPublicaDTO]],
+)
 async def obtener_fases_por_categoria(
     categoria_id: int,
     db: Session = Depends(get_db),
