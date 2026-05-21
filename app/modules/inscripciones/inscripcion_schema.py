@@ -12,7 +12,6 @@ class ColegioNuevoDTO(BaseModel):
     departamento: str
     municipio: str
     calle: Optional[str] = None
-    numero: Optional[str] = None
 
 
 class EstudianteFormularioDTO(BaseModel):

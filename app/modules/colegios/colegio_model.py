@@ -14,5 +14,4 @@ class ColegioModel(Base):
     departamento = Column(String(100), nullable=False)
     municipio = Column(String(100), nullable=False)
     calle = Column(String(255), nullable=True)
-    numero = Column(String(50), nullable=True)
     estado = Column(String(20), nullable=False)

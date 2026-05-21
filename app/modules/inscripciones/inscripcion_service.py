@@ -153,6 +153,5 @@ class InscripcionService:
             "departamento": colegio.departamento,
             "municipio": colegio.municipio,
             "calle": colegio.calle,
-            "numero": colegio.numero,
             "estado": colegio.estado,
         }

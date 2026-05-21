@@ -11,7 +11,6 @@ class ColegioBaseDTO(BaseModel):
     departamento: str
     municipio: str
     calle: Optional[str] = None
-    numero: Optional[str] = None
     estado: str
 
 
@@ -27,7 +26,6 @@ class ColegioUpdateDTO(BaseModel):
     departamento: Optional[str] = None
     municipio: Optional[str] = None
     calle: Optional[str] = None
-    numero: Optional[str] = None
     estado: Optional[str] = None
 
 
