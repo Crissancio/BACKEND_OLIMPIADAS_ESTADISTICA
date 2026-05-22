@@ -80,3 +80,5 @@ class PersonaRepository:
 
     def count_colaboradores(self):
         return self.db.query(ColaboradorModel).count()
+    
+    

@@ -48,7 +48,7 @@ class EstudianteResponseDTO(EstudianteBaseDTO):
 
 class DirectorBaseDTO(BaseModel):
     id_colegio: Optional[int] = None
-    telefono_1: str
+    telefono_1: Optional[str] = None
     telefono_2: Optional[str] = None
 
 

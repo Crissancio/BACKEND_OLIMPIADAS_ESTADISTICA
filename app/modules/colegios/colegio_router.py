@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
+import os
+from fastapi.responses import FileResponse
 
 from app.core.dependencies import get_current_admin
+from app.core.exceptions import NotFoundError
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.colegios.colegio_schema import ColegioCreateDTO, ColegioResponseDTO, ColegioUpdateDTO
 from app.modules.colegios.colegio_service import ColegioService
-
+from app.modules.colegios.colegio_schema import CSVImportDBResponseDTO, CSVUploadResponseDTO, ColegioCSVImportDTO
+from app.modules.colegios.csv.service import generar_csv_errores, obtener_csv_error_path
 
 router = APIRouter(prefix="/colegios", tags=["colegios"])
 
@@ -48,3 +52,61 @@ def actualizar_colegio(
     service = ColegioService(db)
     colegio = service.update(colegio_id, data)
     return ResponseBase(data=colegio, message="Operacion exitosa")
+
+
+@router.post("/subir-csv", response_model=ResponseBase[CSVUploadResponseDTO])
+def subir_csv_colegios(
+    departamento: str = Form(...),
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db), 
+    current_admin_id: int = Depends(get_current_admin)
+):
+    service = ColegioService(db)
+    resultado = service.parse_csv_file(file=file.file, departamento=departamento)
+    csv_errores_path = generar_csv_errores(resultado.filas_error_csv)
+    response = CSVUploadResponseDTO(
+        total_validos=len(resultado.validos),
+        total_errores=len(resultado.errores), 
+        validos=resultado.validos, 
+        errores=resultado.errores, 
+        filas_error_csv=resultado.filas_error_csv, 
+        csv_errores_url=(
+                f"/colegios/csv-error/"
+                f"{os.path.basename(csv_errores_path)}"
+            )
+            if csv_errores_path else None
+        )
+    
+    
+    return ResponseBase(data=response, message="CSV procesado correctamente")
+
+@router.get("/csv-error/{filename}")
+def descargar_csv_error(
+    filename: str,
+    current_admin_id: int = Depends(get_current_admin),
+):
+    filepath = obtener_csv_error_path(
+        filename
+    )
+
+    if not os.path.exists(filepath):
+        raise NotFoundError(
+            "Archivo CSV no encontrado"
+        )
+
+    return FileResponse(
+        path=filepath,
+        media_type="text/csv",
+        filename=filename
+    )
+
+@router.post("/csv", response_model=ResponseBase[CSVImportDBResponseDTO])
+def importar_colegios_csv(
+    colegios: list[ColegioCSVImportDTO],
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
+):
+    service = ColegioService(db)
+    resultado = service.import_from_csv(colegios)
+    response = CSVImportDBResponseDTO(insertados=resultado["insertados"], errores=resultado["errores"])
+    return ResponseBase(data=response, message="Importación completada")

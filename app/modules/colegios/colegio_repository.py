@@ -21,8 +21,25 @@ class ColegioRepository:
         self.db.commit()
         self.db.refresh(colegio)
         return colegio
+    
+    def create_no_commit(self, colegio: ColegioModel):
+        self.db.add(colegio)
+        return colegio
 
     def update(self, colegio: ColegioModel):
         self.db.commit()
         self.db.refresh(colegio)
         return colegio
+
+    def exists_by_codigo( self, codigo: int):
+        return self.db.query(ColegioModel).filter(ColegioModel.codigo == codigo).first() is not None
+    
+    def commit(self):
+        self.db.commit()
+
+
+    def rollback(self):
+        self.db.rollback()
+        
+    def flush(self):
+        self.db.flush()

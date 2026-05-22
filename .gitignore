@@ -20,3 +20,6 @@ venv/
 ENV/
 build/
 dist/
+
+/tmp
+/tmp/*

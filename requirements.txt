@@ -9,3 +9,5 @@ python-multipart
 supabase
 bcrypt<4
 passlib[bcrypt]
+pandas
+unidecode
