@@ -117,9 +117,14 @@ class PersonaService:
         return items, total
 
     def create_estudiante(self, data: EstudianteCreateDTO):
-        with self.db.begin():
-            persona = PersonaModel(nombres=data.nombres, paterno=data.paterno, materno=data.materno)
-            self.repository.create_persona(persona)
+        try:
+            persona = PersonaModel(
+                nombres=data.nombres,
+                paterno=data.paterno,
+                materno=data.materno
+            )
+            self.repository.create_persona(persona)  # hace self.db.add(persona)
+            
             estudiante = EstudianteModel(
                 id_estudiante=persona.id_persona,
                 id_colegio=data.id_colegio,
@@ -132,26 +137,36 @@ class PersonaService:
                 correo=data.correo,
             )
             self.repository.create_estudiante(estudiante)
-
-        return {
-            "id_estudiante": estudiante.id_estudiante,
-            "nombres": persona.nombres,
-            "paterno": persona.paterno,
-            "materno": persona.materno,
-            "id_colegio": estudiante.id_colegio,
-            "carnet_identidad": estudiante.carnet_identidad,
-            "curso": estudiante.curso,
-            "nivel": estudiante.nivel,
-            "fecha_nacimiento": estudiante.fecha_nacimiento,
-            "rude": estudiante.rude,
-            "telefono": estudiante.telefono,
-            "correo": estudiante.correo,
-        }
+            
+            self.db.commit()   # ← commit explícito
+            
+            return {
+                "id_estudiante": estudiante.id_estudiante,
+                "nombres": persona.nombres,
+                "paterno": persona.paterno,
+                "materno": persona.materno,
+                "id_colegio": estudiante.id_colegio,
+                "carnet_identidad": estudiante.carnet_identidad,
+                "curso": estudiante.curso,
+                "nivel": estudiante.nivel,
+                "fecha_nacimiento": estudiante.fecha_nacimiento,
+                "rude": estudiante.rude,
+                "telefono": estudiante.telefono,
+                "correo": estudiante.correo,
+            }
+        except Exception:
+            self.db.rollback()   # ← rollback si algo falla
+            raise
 
     def create_director(self, data: DirectorCreateDTO):
-        with self.db.begin():
-            persona = PersonaModel(nombres=data.nombres, paterno=data.paterno, materno=data.materno)
+        try:
+            persona = PersonaModel(
+                nombres=data.nombres,
+                paterno=data.paterno,
+                materno=data.materno
+            )
             self.repository.create_persona(persona)
+            
             director = DirectorModel(
                 id_director=persona.id_persona,
                 id_colegio=data.id_colegio,
@@ -159,21 +174,31 @@ class PersonaService:
                 telefono_2=data.telefono_2,
             )
             self.repository.create_director(director)
-
-        return {
-            "id_director": director.id_director,
-            "nombres": persona.nombres,
-            "paterno": persona.paterno,
-            "materno": persona.materno,
-            "id_colegio": director.id_colegio,
-            "telefono_1": director.telefono_1,
-            "telefono_2": director.telefono_2,
-        }
+            
+            self.db.commit()
+            
+            return {
+                "id_director": director.id_director,
+                "nombres": persona.nombres,
+                "paterno": persona.paterno,
+                "materno": persona.materno,
+                "id_colegio": director.id_colegio,
+                "telefono_1": director.telefono_1,
+                "telefono_2": director.telefono_2,
+            }
+        except Exception:
+            self.db.rollback()
+            raise
 
     def create_colaborador(self, data: ColaboradorCreateDTO):
-        with self.db.begin():
-            persona = PersonaModel(nombres=data.nombres, paterno=data.paterno, materno=data.materno)
+        try:
+            persona = PersonaModel(
+                nombres=data.nombres,
+                paterno=data.paterno,
+                materno=data.materno
+            )
             self.repository.create_persona(persona)
+            
             colaborador = ColaboradorModel(
                 id_colaborador=persona.id_persona,
                 presentacion=data.presentacion,
@@ -182,17 +207,22 @@ class PersonaService:
                 correo=data.correo,
             )
             self.repository.create_colaborador(colaborador)
-
-        return {
-            "id_colaborador": colaborador.id_colaborador,
-            "nombres": persona.nombres,
-            "paterno": persona.paterno,
-            "materno": persona.materno,
-            "presentacion": colaborador.presentacion,
-            "rol": colaborador.rol,
-            "tipo": colaborador.tipo,
-            "correo": colaborador.correo,
-        }
+            
+            self.db.commit()
+            
+            return {
+                "id_colaborador": colaborador.id_colaborador,
+                "nombres": persona.nombres,
+                "paterno": persona.paterno,
+                "materno": persona.materno,
+                "presentacion": colaborador.presentacion,
+                "rol": colaborador.rol,
+                "tipo": colaborador.tipo,
+                "correo": colaborador.correo,
+            }
+        except Exception:
+            self.db.rollback()
+            raise
 
     def get_persona(self, persona_id: int):
         persona = self.repository.get_persona_by_id(persona_id)
