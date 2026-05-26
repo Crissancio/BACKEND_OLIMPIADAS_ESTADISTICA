@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.dependencies import limiter
 from app.core.exceptions import register_exception_handlers
+from app.modules.administradores.administrador_router import router as administrador_router
 from app.modules.auth.auth_router import router as auth_router
 from app.modules.avisos.aviso_router import router as aviso_router
 from app.modules.categorias.categoria_router import router as categoria_router
@@ -33,6 +34,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 register_exception_handlers(app)
 
 app.include_router(auth_router)
+app.include_router(administrador_router)
 app.include_router(aviso_router)
 app.include_router(convocatoria_router)
 app.include_router(categoria_router)

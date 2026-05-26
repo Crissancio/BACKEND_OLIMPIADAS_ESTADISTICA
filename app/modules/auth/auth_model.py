@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func, text
 
 from app.db.database import Base
 
@@ -10,6 +10,7 @@ class AdministradorModel(Base):
     nombre = Column(String(255), nullable=False)
     correo = Column(String(255), nullable=False, unique=True, index=True)
     contrasena = Column(String(255), nullable=False)
+    estado = Column(String(20), nullable=False, default="ACTIVO", server_default=text("'ACTIVO'"))
 
 
 class AuditoriaModel(Base):

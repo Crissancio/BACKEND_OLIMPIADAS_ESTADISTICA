@@ -28,7 +28,7 @@ def get_current_admin(
 
     repository = AuthRepository(db)
     admin = repository.get_admin_by_id(int(admin_id))
-    if not admin:
+    if not admin or admin.estado != "ACTIVO":
         raise UnauthorizedError("No autorizado")
 
     return admin.id_administrador

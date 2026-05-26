@@ -10,6 +10,8 @@ from app.db.database import get_db
 from app.modules.auth.auth_repository import AuthRepository
 from app.modules.auth.auth_schema import (
     AdminCreateDTO,
+    CambiarContrasenaDTO,
+    CambiarContrasenaResponseDTO,
     LoginDTO,
     LogoutResponseDTO,
     TokenDataDTO,
@@ -40,6 +42,27 @@ def registrar_admin(
     return ResponseBase(data=admin, message="Administrador registrado correctamente")
 
 
+@router.get("/me", response_model=ResponseBase[UsuarioAutenticadoDTO])
+def obtener_usuario_logueado(
+    db: Session = Depends(get_db),
+    admin_id: int = Depends(get_current_admin),
+):
+    service = AuthService(db)
+    admin = service.get_current_user(admin_id)
+    return ResponseBase(data=admin, message="Usuario autenticado")
+
+
+@router.patch("/me/password", response_model=ResponseBase[CambiarContrasenaResponseDTO])
+def cambiar_contrasena(
+    data: CambiarContrasenaDTO,
+    db: Session = Depends(get_db),
+    admin_id: int = Depends(get_current_admin),
+):
+    service = AuthService(db)
+    result = service.cambiar_contrasena(admin_id, data)
+    return ResponseBase(data=result, message="Contrasena actualizada correctamente")
+
+
 @router.post("/logout", response_model=ResponseBase[LogoutResponseDTO])
 def logout(db: Session = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     service = AuthService(db)
@@ -64,7 +87,7 @@ def _get_optional_current_admin_id(
         raise UnauthorizedError("Token invalido")
 
     admin = repository.get_admin_by_id(int(admin_id))
-    if not admin:
+    if not admin or admin.estado != "ACTIVO":
         raise UnauthorizedError("No autorizado")
 
     return admin.id_administrador

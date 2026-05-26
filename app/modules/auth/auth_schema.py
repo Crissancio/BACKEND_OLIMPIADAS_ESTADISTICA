@@ -16,6 +16,7 @@ class UsuarioAutenticadoDTO(BaseModel):
     id_administrador: int
     nombre: str
     correo: str
+    estado: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,3 +30,13 @@ class TokenDataDTO(BaseModel):
 
 class LogoutResponseDTO(BaseModel):
     logout: bool
+
+
+class CambiarContrasenaDTO(BaseModel):
+    contrasena_actual: str
+    nueva_contrasena: str
+    repetir_nueva_contrasena: str
+
+
+class CambiarContrasenaResponseDTO(BaseModel):
+    actualizado: bool
