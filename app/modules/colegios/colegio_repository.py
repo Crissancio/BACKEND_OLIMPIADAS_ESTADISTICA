@@ -1,21 +1,29 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.modules.colegios.colegio_model import ColegioModel
-from app.modules.personas.persona_model import PersonaModel
+from app.modules.personas.persona_model import PersonaModel, DirectorModel
+
 class ColegioRepository:
     def __init__(self, db: Session):
         self.db = db
 
     def get_by_id(self, colegio_id: int):
-        return self.db.query(ColegioModel).filter(ColegioModel.id_colegio == colegio_id).first()
+        return self.db.query(ColegioModel).options(
+            joinedload(ColegioModel.directores).joinedload(DirectorModel.persona)
+        ).filter(ColegioModel.id_colegio == colegio_id).first()
 
     def get_all(self, skip: int, limit: int):
-        return self.db.query(ColegioModel).offset(skip).limit(limit).all()
+        return self.db.query(ColegioModel).options(
+            joinedload(ColegioModel.directores).joinedload(DirectorModel.persona)
+        ).offset(skip).limit(limit).all()
 
     def get_all_filtered(self, skip: int, limit: int, filters: dict):
-        query = self.db.query(ColegioModel)
+        query = self.db.query(ColegioModel).options(
+            joinedload(ColegioModel.directores).joinedload(DirectorModel.persona)
+        )
         query = self._apply_filters(query, filters)
+        
         return query.offset(skip).limit(limit).all(), query.count()
 
     def _apply_filters(self, query, filters: dict):
@@ -38,7 +46,6 @@ class ColegioRepository:
             )
         return query
 
-    
     def count_all(self):
         return self.db.query(ColegioModel).count()
 
@@ -67,12 +74,11 @@ class ColegioRepository:
         self.db.delete(colegio)
         self.db.commit()
     
-    def exists_by_codigo( self, codigo: int):
+    def exists_by_codigo(self, codigo: int):
         return self.db.query(ColegioModel).filter(ColegioModel.codigo == codigo).first() is not None
     
     def commit(self):
         self.db.commit()
-
 
     def rollback(self):
         self.db.rollback()
