@@ -109,3 +109,9 @@ def eliminar_director_total(director_id: int, db: Session = Depends(get_db), cur
     service = PersonaService(db)
     service.delete_director_total(director_id)
     return ResponseBase(data={}, message="Director eliminado permanentemente")
+
+@router.patch("/directores/{director_id}/alta", response_model=ResponseBase[DirectorResponseDTO])
+def alta_logica_director(director_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
+    service = PersonaService(db)
+    director = service.alta_director_logic(director_id)
+    return ResponseBase(data=director, message="Director dado de alta logicamente")

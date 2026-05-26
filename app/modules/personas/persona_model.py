@@ -37,6 +37,10 @@ class EstudianteModel(Base):
     def materno(self):
         return self.persona.materno if self.persona else None
 
+    @property
+    def estado(self):
+        return self.persona.estado if self.persona else None
+
 
 class DirectorModel(Base):
     __tablename__ = "director"
@@ -61,6 +65,10 @@ class DirectorModel(Base):
     @property
     def materno(self):
         return self.persona.materno if self.persona else None
+
+    @property
+    def estado(self):
+        return self.persona.estado if self.persona else None
 
 
 class ColaboradorModel(Base):

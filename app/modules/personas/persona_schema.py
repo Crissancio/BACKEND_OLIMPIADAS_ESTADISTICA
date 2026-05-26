@@ -63,6 +63,7 @@ class DirectorResponseDTO(DirectorBaseDTO):
     nombres: str
     paterno: str
     materno: Optional[str] = None
+    estado: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

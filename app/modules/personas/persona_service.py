@@ -54,6 +54,7 @@ class PersonaService:
                 "nombres": persona.nombres,
                 "paterno": persona.paterno,
                 "materno": persona.materno,
+                "estado": persona.estado,
                 "id_colegio": director.id_colegio,
                 "telefono_1": director.telefono_1,
                 "telefono_2": director.telefono_2,
@@ -92,6 +93,7 @@ class PersonaService:
                     "nombres": persona.nombres,
                     "paterno": persona.paterno,
                     "materno": persona.materno,
+                    "estado": persona.estado,
                     "id_colegio": director.id_colegio,
                     "telefono_1": director.telefono_1,
                     "telefono_2": director.telefono_2,
@@ -262,6 +264,12 @@ class PersonaService:
         director, persona = self.get_director_by_id(director_id)
         self.repository.delete_director_total(director, persona)
 
+    def alta_director_logic(self, director_id: int):
+        director, persona = self.get_director_by_id(director_id)
+        persona.estado = "ACTIVO"
+        self.repository.update_director(director, persona)
+        return self._format_director_response(director, persona)
+
     def list_directores_minified(self):
         rows = self.repository.list_directores_minified()
         return [
@@ -278,6 +286,7 @@ class PersonaService:
             "nombres": persona.nombres,
             "paterno": persona.paterno,
             "materno": persona.materno,
+            "estado": persona.estado,
             "id_colegio": director.id_colegio,
             "telefono_1": director.telefono_1,
             "telefono_2": director.telefono_2,
