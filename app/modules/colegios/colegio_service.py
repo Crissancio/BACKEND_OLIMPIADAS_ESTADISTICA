@@ -26,7 +26,10 @@ class ColegioService:
         return items, total
     
     def create(self, data: ColegioCreateDTO):
-        colegio = ColegioModel(**data.model_dump())
+        colegio_data = data.model_dump(exclude_unset=True)
+        if 'estado' not in colegio_data:
+            colegio_data['estado'] = 'REVISADO'
+        colegio = ColegioModel(**colegio_data)
         return self.repository.create(colegio)
 
     def update(self, colegio_id: int, data: ColegioUpdateDTO):
@@ -39,6 +42,10 @@ class ColegioService:
     def delete_logic(self, colegio_id: int):
         colegio = self.get_by_id(colegio_id)
         return self.repository.update_estado(colegio, "INACTIVO")
+
+    def alta_logic(self, colegio_id: int):
+        colegio = self.get_by_id(colegio_id)
+        return self.repository.update_estado(colegio, "REVISADO")
 
     def delete_total(self, colegio_id: int):
         colegio = self.get_by_id(colegio_id)

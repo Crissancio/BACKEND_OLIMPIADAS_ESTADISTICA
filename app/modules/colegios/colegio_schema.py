@@ -14,7 +14,7 @@ class ColegioBaseDTO(BaseModel):
 
 
 class ColegioCreateDTO(ColegioBaseDTO):
-    pass
+    estado: Optional[str] = None 
 
 
 class ColegioUpdateDTO(BaseModel):

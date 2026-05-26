@@ -73,6 +73,13 @@ def baja_logica_colegio(colegio_id: int, db: Session = Depends(get_db), current_
     return ResponseBase(data=colegio, message="Colegio dado de baja lógicamente (INACTIVO)")
 
 
+@router.patch("/{colegio_id}/alta", response_model=ResponseBase[ColegioResponseDTO])
+def alta_logica_colegio(colegio_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
+    service = ColegioService(db)
+    colegio = service.alta_logic(colegio_id)
+    return ResponseBase(data=colegio, message="Colegio dado de alta logicamente (REVISADO)")
+
+
 @router.delete("/{colegio_id}", response_model=ResponseBase[dict])
 def eliminar_colegio_total(colegio_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = ColegioService(db)
