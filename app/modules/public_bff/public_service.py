@@ -45,7 +45,7 @@ class PublicBffService:
             self.categoria_service.get_resumen_by_convocatoria, convocatoria.id_convocatoria
         )
         materiales_principales_task = asyncio.to_thread(
-            self.material_service.get_principales_public,
+            self.material_service.get_principales_public_con_tipo,
             None,
         )
         categorias, avisos, materiales_principales = await asyncio.gather(
@@ -167,7 +167,7 @@ class PublicBffService:
             return []
         return [
             {
-                "enlace_acceso": material.enlace_acceso,
+                "enlace_acceso": material.get("enlace_acceso"),
                 "importancia_tipo": importancia_tipo,
             }
             for material, importancia_tipo in materiales
@@ -198,6 +198,12 @@ class PublicBffService:
     def _format_material_principal_detalle(self, material):
         if material is None:
             return None
+        if isinstance(material, dict):
+            return {
+                "enlace_acceso": material.get("enlace_acceso"),
+                "nombre_material": material.get("nombre_material"),
+                "descripcion": material.get("descripcion"),
+            }
         return {
             "enlace_acceso": material.enlace_acceso,
             "nombre_material": material.nombre_material,
@@ -207,9 +213,9 @@ class PublicBffService:
     def _format_materiales_simples(self, materiales):
         return [
             {
-                "enlace_acceso": material.enlace_acceso,
-                "nombre_material": material.nombre_material,
-                "descripcion": material.descripcion,
+                "enlace_acceso": material.get("enlace_acceso") if isinstance(material, dict) else material.enlace_acceso,
+                "nombre_material": material.get("nombre_material") if isinstance(material, dict) else material.nombre_material,
+                "descripcion": material.get("descripcion") if isinstance(material, dict) else material.descripcion,
             }
             for material in materiales
         ]
@@ -250,10 +256,14 @@ class PublicBffService:
     def _format_avisos(self, avisos):
         return [
             {
-                "titulo": aviso.titulo,
-                "descripcion": aviso.descripcion,
-                "tipo": aviso.tipo,
-                "fecha_publicacion": aviso.fecha_publicacion.date() if aviso.fecha_publicacion else None,
+                "titulo": aviso.get("titulo") if isinstance(aviso, dict) else aviso.titulo,
+                "descripcion": aviso.get("descripcion") if isinstance(aviso, dict) else aviso.descripcion,
+                "tipo": aviso.get("tipo") if isinstance(aviso, dict) else aviso.tipo,
+                "fecha_publicacion": (
+                    aviso.get("fecha_publicacion") if isinstance(aviso, dict) else aviso.fecha_publicacion
+                ).date()
+                if (aviso.get("fecha_publicacion") if isinstance(aviso, dict) else aviso.fecha_publicacion)
+                else None,
             }
             for aviso in avisos
         ]
