@@ -78,7 +78,7 @@ class PersonaRepository:
     def get_colaborador_by_id(self, colaborador_id: int):
         return self.db.query(ColaboradorModel).filter(ColaboradorModel.id_colaborador == colaborador_id).first()
 
-    def list_colaboradores_advanced(self, skip: int, limit: int, nombre: str = None, correo: str = None, tipo: str = None, rol: str = None):
+    def list_colaboradores_advanced(self, skip: int, limit: int, nombre: str = None, correo: str = None, tipo: str = None, rol: str = None, estado: str = None):
         query = self.db.query(ColaboradorModel).join(PersonaModel)
         if nombre:
             search = f"%{nombre}%"
@@ -89,6 +89,8 @@ class PersonaRepository:
             query = query.filter(ColaboradorModel.tipo == tipo)
         if rol:
             query = query.filter(ColaboradorModel.rol.ilike(f"%{rol}%"))
+        if estado:
+            query = query.filter(PersonaModel.estado == estado)
         
         total = query.count()
         items = query.offset(skip).limit(limit).all()

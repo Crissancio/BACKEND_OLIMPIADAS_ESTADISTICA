@@ -239,9 +239,9 @@ class PersonaService:
             self.storage.delete_file(colaborador.perfil)
         self.repository.delete_colaborador_physical(colaborador, colaborador.persona)
 
-    def list_colaboradores(self, page, limit, nombre, correo, tipo, rol):
+    def list_colaboradores(self, page, limit, nombre, correo, tipo, rol, estado):
         skip = (page - 1) * limit
-        items, total = self.repository.list_colaboradores_advanced(skip, limit, nombre, correo, tipo, rol)
+        items, total = self.repository.list_colaboradores_advanced(skip, limit, nombre, correo, tipo, rol, estado)
         return [self._format_response(i) for i in items], total
 
     def _format_response(self, c: ColaboradorModel):

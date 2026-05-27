@@ -104,10 +104,11 @@ def listar_colaboradores(
     correo: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
     rol: Optional[str] = Query(None),
+    estado: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     service = PersonaService(db)
-    items, total = service.list_colaboradores(page, limit, nombre, correo, tipo, rol)
+    items, total = service.list_colaboradores(page, limit, nombre, correo, tipo, rol, estado)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
     return PaginatedResponse(data=PaginatedData(items=items, meta=meta))
 
