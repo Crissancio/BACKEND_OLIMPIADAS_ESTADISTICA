@@ -96,10 +96,10 @@ def alta_logica_director(director_id: int, db: Session = Depends(get_db), curren
     service = PersonaService(db)
     director = service.alta_director_logic(director_id)
     return ResponseBase(data=director, message="Director dado de alta logicamente")
-
 @router.get("/colaboradores", response_model=PaginatedResponse[ColaboradorResponseDTO])
 def listar_colaboradores(
-    page: int = 1, limit: int = 10,
+    page: int = 1, 
+    limit: int = 10,
     nombre: Optional[str] = Query(None),
     correo: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
@@ -109,14 +109,29 @@ def listar_colaboradores(
 ):
     service = PersonaService(db)
     items, total = service.list_colaboradores(page, limit, nombre, correo, tipo, rol, estado)
-    meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
-    return PaginatedResponse(data=PaginatedData(items=items, meta=meta))
+    meta = PaginationMeta(
+        page=page, 
+        limit=limit, 
+        total=total, 
+        total_pages=(total + limit - 1) // limit
+    )
+    return PaginatedResponse(
+        data=PaginatedData(items=items, meta=meta),
+        message="Lista de colaboradores obtenida correctamente"
+    )
 
 @router.get("/colaboradores/{id}", response_model=ResponseBase[ColaboradorResponseDTO])
-def obtener_colaborador(id: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+def obtener_colaborador(
+    id: int, 
+    db: Session = Depends(get_db), 
+    admin=Depends(get_current_admin)
+):
     service = PersonaService(db)
     colaborador = service.get_colaborador_by_id(id)
-    return ResponseBase(data=service._format_response(colaborador))
+    return ResponseBase(
+        data=service._format_response(colaborador),
+        message="Detalle del colaborador obtenido"
+    )
 
 @router.post("/colaboradores", response_model=ResponseBase[ColaboradorResponseDTO])
 def crear_colaborador(
@@ -131,40 +146,87 @@ def crear_colaborador(
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin)
 ):
-    data = ColaboradorCreateDTO(nombres=nombres, paterno=paterno, materno=materno, rol=rol, tipo=tipo, correo=correo, presentacion=presentacion)
+    data = ColaboradorCreateDTO(
+        nombres=nombres, 
+        paterno=paterno, 
+        materno=materno, 
+        rol=rol, 
+        tipo=tipo, 
+        correo=correo, 
+        presentacion=presentacion
+    )
     service = PersonaService(db)
     colaborador = service.create_colaborador(data, perfil)
-    return ResponseBase(data=service._format_response(colaborador))
+    return ResponseBase(
+        data=service._format_response(colaborador),
+        message="Colaborador creado exitosamente"
+    )
 
 @router.put("/colaboradores/{id}", response_model=ResponseBase[ColaboradorResponseDTO])
 def actualizar_colaborador(
     id: int,
     nombres: Optional[str] = Form(None),
     paterno: Optional[str] = Form(None),
+    materno: Optional[str] = Form(None),
     rol: Optional[str] = Form(None),
+    tipo: Optional[str] = Form(None),
+    correo: Optional[str] = Form(None),
+    presentacion: Optional[str] = Form(None),
     perfil: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin)
 ):
-    data = ColaboradorUpdateDTO(nombres=nombres, paterno=paterno, rol=rol)
+    data = ColaboradorUpdateDTO(
+        nombres=nombres,
+        paterno=paterno,
+        materno=materno,
+        rol=rol,
+        tipo=tipo,
+        correo=correo,
+        presentacion=presentacion
+    )
     service = PersonaService(db)
     colaborador = service.update_colaborador(id, data, perfil)
-    return ResponseBase(data=service._format_response(colaborador))
+    return ResponseBase(
+        data=service._format_response(colaborador),
+        message="Colaborador actualizado correctamente"
+    )
 
-@router.patch("/colaboradores/{id}/baja")
-def baja_colaborador(id: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+@router.patch("/colaboradores/{id}/baja", response_model=ResponseBase[dict])
+def baja_colaborador(
+    id: int, 
+    db: Session = Depends(get_db), 
+    admin=Depends(get_current_admin)
+):
     service = PersonaService(db)
     service.delete_logic(id)
-    return ResponseBase(data={}, message="Colaborador desactivado")
+    return ResponseBase(
+        data={}, 
+        message="Colaborador desactivado correctamente"
+    )
 
-@router.patch("/colaboradores/{id}/alta")
-def alta_colaborador(id: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+@router.patch("/colaboradores/{id}/alta", response_model=ResponseBase[dict])
+def alta_colaborador(
+    id: int, 
+    db: Session = Depends(get_db), 
+    admin=Depends(get_current_admin)
+):
     service = PersonaService(db)
     service.activate_logic(id)
-    return ResponseBase(data={}, message="Colaborador dado de alta logicamente")
+    return ResponseBase(
+        data={}, 
+        message="Colaborador activado correctamente"
+    )
 
-@router.delete("/colaboradores/{id}")
-def eliminar_colaborador(id: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+@router.delete("/colaboradores/{id}", response_model=ResponseBase[dict])
+def eliminar_colaborador(
+    id: int, 
+    db: Session = Depends(get_db), 
+    admin=Depends(get_current_admin)
+):
     service = PersonaService(db)
     service.delete_physical(id)
-    return ResponseBase(data={}, message="Eliminado permanentemente de la BD y Storage")
+    return ResponseBase(
+        data={}, 
+        message="Colaborador y archivos eliminados permanentemente"
+    )

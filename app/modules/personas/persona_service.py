@@ -178,86 +178,6 @@ class PersonaService:
             self.db.rollback()
             raise
 
-
-    def get_colaborador_by_id(self, colaborador_id: int):
-        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
-        if not colaborador:
-            raise NotFoundError("Colaborador no encontrado")
-        return colaborador
-
-    def create_colaborador(self, data: ColaboradorCreateDTO, perfil_file: UploadFile = None):
-        perfil_url = None
-        if perfil_file:
-            content = perfil_file.file.read()
-            perfil_url = self.storage.upload_file(content, perfil_file.filename, "perfiles")
-
-        persona = PersonaModel(nombres=data.nombres, paterno=data.paterno, materno=data.materno)
-        colaborador = ColaboradorModel(
-            perfil=perfil_url,
-            presentacion=data.presentacion,
-            rol=data.rol,
-            tipo=data.tipo,
-            correo=data.correo
-        )
-        return self.repository.create_colaborador(persona, colaborador)
-
-    def update_colaborador(self, colaborador_id: int, data: ColaboradorUpdateDTO, perfil_file: UploadFile = None):
-        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
-        if not colaborador:
-            raise BusinessRuleError("Colaborador no encontrado")
-        
-        if perfil_file:
-            if colaborador.perfil:
-                self.storage.delete_file(colaborador.perfil)
-            content = perfil_file.file.read()
-            colaborador.perfil = self.storage.upload_file(content, perfil_file.filename, "perfiles")
-
-        for key, value in data.model_dump(exclude_unset=True).items():
-            if hasattr(colaborador, key):
-                setattr(colaborador, key, value)
-            elif hasattr(colaborador.persona, key):
-                setattr(colaborador.persona, key, value)
-        
-        self.repository.update_colaborador()
-        return colaborador
-
-    def delete_logic(self, colaborador_id: int):
-        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
-        colaborador.persona.estado = "INACTIVO"
-        self.repository.update_colaborador()
-        return colaborador
-
-    def activate_logic(self, colaborador_id: int):
-        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
-        colaborador.persona.estado = "ACTIVO"
-        self.repository.update_colaborador()
-        return colaborador
-
-    def delete_physical(self, colaborador_id: int):
-        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
-        if colaborador.perfil:
-            self.storage.delete_file(colaborador.perfil)
-        self.repository.delete_colaborador_physical(colaborador, colaborador.persona)
-
-    def list_colaboradores(self, page, limit, nombre, correo, tipo, rol, estado):
-        skip = (page - 1) * limit
-        items, total = self.repository.list_colaboradores_advanced(skip, limit, nombre, correo, tipo, rol, estado)
-        return [self._format_response(i) for i in items], total
-
-    def _format_response(self, c: ColaboradorModel):
-        return {
-            "id_colaborador": c.id_colaborador,
-            "nombres": c.nombres,
-            "paterno": c.paterno,
-            "materno": c.materno,
-            "perfil": c.perfil,
-            "presentacion": c.presentacion,
-            "rol": c.rol,
-            "tipo": c.tipo,
-            "correo": c.correo,
-            "estado": c.persona.estado
-        }
-
     def get_persona(self, persona_id: int):
         persona = self.repository.get_persona_by_id(persona_id)
         if not persona:
@@ -321,4 +241,94 @@ class PersonaService:
             "id_colegio": director.id_colegio,
             "telefono_1": director.telefono_1,
             "telefono_2": director.telefono_2,
+        }
+    
+    def create_colaborador(self, data: ColaboradorCreateDTO, perfil_file: UploadFile | None = None):
+        perfil_url = None
+        if perfil_file:
+            content = perfil_file.file.read()
+            perfil_url = self.storage.upload_file(content, perfil_file.filename, "perfiles")
+
+        persona = PersonaModel(
+            nombres=data.nombres,
+            paterno=data.paterno,
+            materno=data.materno
+        )
+        colaborador = ColaboradorModel(
+            perfil=perfil_url,
+            presentacion=data.presentacion,
+            rol=data.rol,
+            tipo=data.tipo,
+            correo=data.correo
+        )
+        return self.repository.create_colaborador(persona, colaborador)
+
+    def update_colaborador(self, colaborador_id: int, data: ColaboradorUpdateDTO, perfil_file: UploadFile | None = None):
+        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
+        if not colaborador:
+            raise BusinessRuleError("Colaborador no encontrado")
+        
+        if perfil_file:
+            if colaborador.perfil:
+                self.storage.delete_file(colaborador.perfil)
+            content = perfil_file.file.read()
+            colaborador.perfil = self.storage.upload_file(content, perfil_file.filename, "perfiles")
+
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            if hasattr(colaborador, key):
+                setattr(colaborador, key, value)
+            elif hasattr(colaborador.persona, key):
+                setattr(colaborador.persona, key, value)
+        
+        self.repository.update_colaborador()
+        return colaborador
+
+    def delete_logic(self, colaborador_id: int):
+        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
+        if not colaborador:
+            raise BusinessRuleError("Colaborador no encontrado")
+        colaborador.persona.estado = "INACTIVO"
+        self.repository.update_colaborador()
+        return colaborador
+
+    def activate_logic(self, colaborador_id: int):
+        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
+        if not colaborador:
+            raise BusinessRuleError("Colaborador no encontrado")
+        colaborador.persona.estado = "ACTIVO"
+        self.repository.update_colaborador()
+        return colaborador
+
+    def delete_physical(self, colaborador_id: int):
+        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
+        if not colaborador:
+            raise BusinessRuleError("Colaborador no encontrado")
+        if colaborador.perfil:
+            self.storage.delete_file(colaborador.perfil)
+        self.repository.delete_colaborador_physical(colaborador, colaborador.persona)
+
+    def get_colaborador_by_id(self, colaborador_id: int):
+        colaborador = self.repository.get_colaborador_by_id(colaborador_id)
+        if not colaborador:
+            raise BusinessRuleError("Colaborador no encontrado")
+        return colaborador
+
+    def list_colaboradores(self, page: int, limit: int, nombre: str | None, correo: str | None, tipo: str | None, rol: str | None, estado: str | None):
+        skip = (page - 1) * limit
+        items, total = self.repository.list_colaboradores_advanced(skip, limit, nombre, correo, tipo, rol, estado)
+        return [self._format_response(i) for i in items], total
+
+    def _format_response(self, c: ColaboradorModel):
+        return {
+            "id_colaborador": c.id_colaborador,
+            "nombres": c.persona.nombres if c.persona else "",
+            "paterno": c.persona.paterno if c.persona else "",
+            "materno": c.persona.materno if c.persona else "",
+            "perfil": c.perfil,
+            "presentacion": c.presentacion,
+            "rol": c.rol,
+            "tipo": c.tipo,
+            "correo": c.correo,
+            "estado": c.persona.estado if c.persona else "ACTIVO"
         }
