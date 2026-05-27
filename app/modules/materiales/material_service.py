@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.supabase_storage import SupabaseStorageClient
 from app.modules.auth.auth_repository import AuthRepository
+from datetime import datetime
+
 from app.modules.materiales.material_model import MaterialModel
 from app.modules.materiales.material_repository import MaterialRepository
-from datetime import datetime
 
 from app.modules.materiales.material_schema import MaterialCreateDTO, MaterialUpdateDTO
 
@@ -23,27 +24,30 @@ class MaterialService:
         material = self.repository.get_public_by_id(material_id)
         if not material:
             raise NotFoundError("Material no encontrado")
-        return material
+        return self._with_estado_temporal(material)
 
     def get_by_id(self, material_id: int):
         material = self.repository.get_by_id(material_id)
         if not material:
             raise NotFoundError("Material no encontrado")
-        return material
+        return self._with_estado_temporal(material)
 
     def get_public(self, page: int, limit: int):
         skip = (page - 1) * limit
-        return self.repository.get_public(skip=skip, limit=limit), self.repository.count_public()
+        items = [self._with_estado_temporal(item) for item in self.repository.get_public(skip=skip, limit=limit)]
+        return items, self.repository.count_public()
 
     def get_all(self, page: int, limit: int):
         skip = (page - 1) * limit
-        return self.repository.get_all(skip=skip, limit=limit), self.repository.count_all()
+        items = [self._with_estado_temporal(item) for item in self.repository.get_all(skip=skip, limit=limit)]
+        return items, self.repository.count_all()
 
     async def create(self, data: MaterialCreateDTO, archivo: UploadFile, current_admin_id: int):
-        return await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        material = await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        return self._with_estado_temporal(material)
 
     async def update(self, material_id: int, data: MaterialUpdateDTO, archivo: UploadFile | None, current_admin_id: int):
-        material = self.get_by_id(material_id)
+        material = self._get_model_by_id(material_id)
         relation_values = {
             "id_convocatoria": data.id_convocatoria,
             "id_categoria": data.id_categoria,
@@ -88,18 +92,20 @@ class MaterialService:
             accion="ACTUALIZAR_MATERIAL",
             descripcion=f"Material actualizado: {updated_material.nombre_material}",
         )
-        return updated_material
+        return self._with_estado_temporal(updated_material)
 
     def delete(self, material_id: int, current_admin_id: int):
-        material = self.get_by_id(material_id)
+        material = self._get_model_by_id(material_id)
         deleted_material = {
             "id_material": material.id_material,
             "nombre_material": material.nombre_material,
             "enlace_acceso": material.enlace_acceso,
             "descripcion": material.descripcion,
             "fecha_creacion": material.fecha_creacion,
+            "estado": material.estado,
             "tipo_material": material.tipo_material,
             "fecha_publicacion": material.fecha_publicacion,
+            "estado_temporal": self._calculate_estado_temporal(material),
         }
         self.repository.delete(material)
         self.auth_repository.create_auditoria(
@@ -126,7 +132,8 @@ class MaterialService:
             fecha_publicacion=data.fecha_publicacion,
             id_convocatoria=convocatoria_id,
         )
-        return await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        material = await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        return self._with_estado_temporal(material)
 
     async def create_material_categoria(self, categoria_id: int, data: MaterialCreateDTO, archivo: UploadFile, current_admin_id: int):
         self._validate_relations(None, categoria_id, None)
@@ -137,7 +144,8 @@ class MaterialService:
             fecha_publicacion=data.fecha_publicacion,
             id_categoria=categoria_id,
         )
-        return await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        material = await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        return self._with_estado_temporal(material)
 
     async def create_material_fase(self, fase_id: int, data: MaterialCreateDTO, archivo: UploadFile, current_admin_id: int):
         self._validate_relations(None, None, fase_id)
@@ -148,7 +156,8 @@ class MaterialService:
             fecha_publicacion=data.fecha_publicacion,
             id_fase=fase_id,
         )
-        return await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        material = await self._create_material(data, archivo, current_admin_id, allow_principal=False)
+        return self._with_estado_temporal(material)
 
     async def create_material_principal(
         self,
@@ -178,7 +187,7 @@ class MaterialService:
             self.repository.update(existing)
             self.repository.update_importancia_tipo(convocatoria_id, existing.id_material, "OTRO")
         self.repository.update_importancia_tipo(convocatoria_id, material.id_material, importancia_tipo)
-        return material
+        return self._with_estado_temporal(material)
 
     def asignar_material_principal(self, convocatoria_id: int, material_id: int, importancia_tipo: str, current_admin_id: int):
         if importancia_tipo not in self.IMPORTANCIA_TIPOS:
@@ -188,7 +197,7 @@ class MaterialService:
         if not convocatoria:
             raise BusinessRuleError("La convocatoria no existe")
 
-        material = self.get_by_id(material_id)
+        material = self._get_model_by_id(material_id)
         if material.tipo_material != "PRINCIPAL":
             raise BusinessRuleError("Tipo de material no coincide con el tipo principal")
 
@@ -211,7 +220,7 @@ class MaterialService:
             accion="ASIGNAR_MATERIAL_PRINCIPAL",
             descripcion=f"Material principal asignado: {material.nombre_material}",
         )
-        return material
+        return self._with_estado_temporal(material)
 
     def get_material_principal(self, convocatoria_id: int, importancia_tipo: str):
         material = self.repository.get_convocatoria_material_by_tipo(convocatoria_id, importancia_tipo)
@@ -230,7 +239,7 @@ class MaterialService:
             accion="ELIMINAR_MATERIAL_PRINCIPAL",
             descripcion=f"Material principal eliminado: {material.nombre_material}",
         )
-        return material
+        return self._with_estado_temporal(material)
 
     def _normalize_nombre(self, nombre: str) -> str:
         return nombre.strip().upper()
@@ -250,30 +259,46 @@ class MaterialService:
         material = self.repository.get_convocatoria_material_by_tipo_public(convocatoria_id, importancia_tipo)
         if not material:
             raise NotFoundError("Material no encontrado")
-        return material
+        return self._with_estado_temporal(material)
 
     def get_public_by_convocatoria(self, convocatoria_id: int, page: int, limit: int):
         skip = (page - 1) * limit
-        items = self.repository.get_public_by_convocatoria(convocatoria_id, skip=skip, limit=limit)
+        items = [
+            self._with_estado_temporal(item)
+            for item in self.repository.get_public_by_convocatoria(convocatoria_id, skip=skip, limit=limit)
+        ]
         total = self.repository.count_public_by_convocatoria(convocatoria_id)
         return items, total
 
     def get_public_by_categoria(self, categoria_id: int, page: int, limit: int):
         skip = (page - 1) * limit
-        items = self.repository.get_public_by_categoria(categoria_id, skip=skip, limit=limit)
+        items = [
+            self._with_estado_temporal(item)
+            for item in self.repository.get_public_by_categoria(categoria_id, skip=skip, limit=limit)
+        ]
         total = self.repository.count_public_by_categoria(categoria_id)
         return items, total
 
     def get_public_by_fase(self, fase_id: int, page: int, limit: int):
         skip = (page - 1) * limit
-        items = self.repository.get_public_by_fase(fase_id, skip=skip, limit=limit)
+        items = [
+            self._with_estado_temporal(item)
+            for item in self.repository.get_public_by_fase(fase_id, skip=skip, limit=limit)
+        ]
         total = self.repository.count_public_by_fase(fase_id)
         return items, total
 
     def get_principales_public(self, importancia_tipo: str | None = None):
         if importancia_tipo and importancia_tipo not in self.IMPORTANCIA_TIPOS:
             raise BusinessRuleError("Tipo de importancia no valido")
-        return self.repository.get_principales_public(importancia_tipo)
+        materiales = self.repository.get_principales_public(importancia_tipo)
+        return [self._with_estado_temporal(material) for material, _ in materiales]
+
+    def get_principales_public_con_tipo(self, importancia_tipo: str | None = None):
+        if importancia_tipo and importancia_tipo not in self.IMPORTANCIA_TIPOS:
+            raise BusinessRuleError("Tipo de importancia no valido")
+        materiales = self.repository.get_principales_public(importancia_tipo)
+        return [(self._with_estado_temporal(material), tipo) for material, tipo in materiales]
 
     async def _create_material(
         self,
@@ -319,3 +344,22 @@ class MaterialService:
             descripcion=f"Material creado: {created_material.nombre_material}",
         )
         return created_material
+
+    def _with_estado_temporal(self, material: MaterialModel):
+        data = material.__dict__.copy()
+        data.pop("_sa_instance_state", None)
+        data["estado_temporal"] = self._calculate_estado_temporal(material)
+        return data
+
+    def _calculate_estado_temporal(self, material: MaterialModel) -> str:
+        if material.estado != "PUBLICADO":
+            return "NO_VISIBLE"
+        if material.fecha_publicacion and datetime.utcnow() < material.fecha_publicacion:
+            return "EN_ESPERA"
+        return "PUBLICADO"
+
+    def _get_model_by_id(self, material_id: int) -> MaterialModel:
+        material = self.repository.get_by_id(material_id)
+        if not material:
+            raise NotFoundError("Material no encontrado")
+        return material

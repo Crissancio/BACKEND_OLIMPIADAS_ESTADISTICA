@@ -33,5 +33,6 @@ class MaterialResponseDTO(BaseModel):
     estado: str
     tipo_material: str
     fecha_publicacion: Optional[datetime] = None
+    estado_temporal: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
