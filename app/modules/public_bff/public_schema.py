@@ -6,13 +6,11 @@ from pydantic import BaseModel
 from app.modules.convocatorias.convocatoria_schema import ConvocatoriaResponseDTO
 from app.modules.materiales.material_schema import MaterialResponseDTO
 
-
 class CategoriaInicioDTO(BaseModel):
     id_categoria: int
     nombre_categoria: str
     nivel: str
     curso: int
-
 
 class CategoriaDetalleDTO(BaseModel):
     id_categoria: int
@@ -20,23 +18,19 @@ class CategoriaDetalleDTO(BaseModel):
     nivel: str
     curso: int
 
-
 class MaterialPrincipalDTO(BaseModel):
     enlace_acceso: Optional[str] = None
     importancia_tipo: Optional[str] = None
-
 
 class MaterialPrincipalDetalleDTO(BaseModel):
     enlace_acceso: Optional[str] = None
     nombre_material: Optional[str] = None
     descripcion: Optional[str] = None
 
-
 class MaterialPublicoSimpleDTO(BaseModel):
     enlace_acceso: str
     nombre_material: str
     descripcion: Optional[str] = None
-
 
 class FasePreparacionPublicaDTO(BaseModel):
     id_fase: int
@@ -48,7 +42,6 @@ class FasePreparacionPublicaDTO(BaseModel):
     tipo_fase: str = "PREPARACION"
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
-
 
 class FasePruebaPublicaDTO(BaseModel):
     id_fase: int
@@ -63,20 +56,19 @@ class FasePruebaPublicaDTO(BaseModel):
     fecha_realizacion: Optional[datetime] = None
     lugar_realizacion: Optional[str] = None
 
-
 class AvisoInicioDTO(BaseModel):
     titulo: str
     descripcion: str
     tipo: str
+    prioridad: str
     fecha_publicacion: Optional[date] = None
-
+    estado_temporal: Optional[str] = None
 
 class InicioResponseDTO(BaseModel):
     convocatoria: Optional[ConvocatoriaResponseDTO] = None
     material_principal: List[MaterialPrincipalDTO]
     categorias: List[CategoriaInicioDTO]
     avisos: List[AvisoInicioDTO]
-
 
 class ConvocatoriaDetalleDTO(BaseModel):
     convocatoria: Optional[ConvocatoriaResponseDTO] = None

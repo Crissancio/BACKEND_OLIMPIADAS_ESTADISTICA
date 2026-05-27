@@ -30,7 +30,8 @@ class PublicBffService:
 
     async def get_inicio(self):
         convocatoria = await asyncio.to_thread(self._safe_get_convocatoria)
-        avisos_task = asyncio.to_thread(self.aviso_service.get_recientes, 4)
+        # Cambio aquí: Llamamos a get_avisos_inicio() que no tiene límite y trae el orden correcto
+        avisos_task = asyncio.to_thread(self.aviso_service.get_avisos_inicio)
 
         if convocatoria is None:
             avisos = await avisos_task
@@ -156,13 +157,12 @@ class PublicBffService:
         except Exception:
             return None
 
-    #### NO TOCAR ESTO
     def _safe_get_material_principal_public(self, convocatoria_id: int, importancia_tipo: str):
         try:
             return self.material_service.get_material_principal_public(convocatoria_id, importancia_tipo)
         except Exception:
             return None
-    ####
+
     def _map_convocatoria(self, convocatoria):
         if convocatoria is None:
             return None
@@ -268,11 +268,13 @@ class PublicBffService:
                 "titulo": aviso.get("titulo") if isinstance(aviso, dict) else aviso.titulo,
                 "descripcion": aviso.get("descripcion") if isinstance(aviso, dict) else aviso.descripcion,
                 "tipo": aviso.get("tipo") if isinstance(aviso, dict) else aviso.tipo,
+                "prioridad": aviso.get("prioridad") if isinstance(aviso, dict) else getattr(aviso, "prioridad", "MEDIA"),
                 "fecha_publicacion": (
                     aviso.get("fecha_publicacion") if isinstance(aviso, dict) else aviso.fecha_publicacion
                 ).date()
                 if (aviso.get("fecha_publicacion") if isinstance(aviso, dict) else aviso.fecha_publicacion)
                 else None,
+                "estado_temporal": aviso.get("estado_temporal") if isinstance(aviso, dict) else getattr(aviso, "estado_temporal", None),
             }
             for aviso in avisos
         ]

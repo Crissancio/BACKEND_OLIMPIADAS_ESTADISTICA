@@ -1,12 +1,11 @@
 from datetime import datetime
-
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.modules.auth.auth_repository import AuthRepository
 from app.modules.avisos.aviso_model import AvisoModel
 from app.modules.avisos.aviso_repository import AvisoRepository
-from app.modules.avisos.aviso_schema import AvisoCreateDTO, AvisoUpdateDTO
+from app.modules.avisos.aviso_schema import AvisoCreateDTO, AvisoUpdateDTO, AvisoEstadoUpdateDTO
 
 
 class AvisoService:
@@ -17,27 +16,31 @@ class AvisoService:
     def get_public_by_id(self, aviso_id: int):
         aviso = self.repository.get_public_by_id(aviso_id)
         if not aviso:
-            raise NotFoundError("Aviso no encontrado")
+            raise NotFoundError("Aviso no encontrado o no está disponible públicamente")
         return self._with_estado_temporal(aviso)
 
     def get_by_id(self, aviso_id: int):
-        aviso = self.repository.get_by_id(aviso_id)
-        if not aviso:
-            raise NotFoundError("Aviso no encontrado")
+        aviso = self._get_model_by_id(aviso_id)
         return self._with_estado_temporal(aviso)
 
-    def get_public(self, page: int, limit: int):
+    def get_public(self, page: int, limit: int, filters: dict):
         skip = (page - 1) * limit
-        items = [self._with_estado_temporal(item) for item in self.repository.get_public(skip=skip, limit=limit)]
-        return items, self.repository.count_public()
+        items = [self._with_estado_temporal(item) for item in self.repository.get_public(skip=skip, limit=limit, filters=filters)]
+        total = self.repository.count_public(filters=filters)
+        return items, total
 
-    def get_all(self, page: int, limit: int):
+    def get_all(self, page: int, limit: int, filters: dict):
         skip = (page - 1) * limit
-        items = [self._with_estado_temporal(item) for item in self.repository.get_all(skip=skip, limit=limit)]
-        return items, self.repository.count_all()
+        items = [self._with_estado_temporal(item) for item in self.repository.get_all(skip=skip, limit=limit, filters=filters)]
+        total = self.repository.count_all(filters=filters)
+        return items, total
 
     def get_recientes(self, limite: int):
         return [self._with_estado_temporal(item) for item in self.repository.get_recent_public(limite)]
+
+    def get_avisos_inicio(self):
+        items = self.repository.get_all_public_for_inicio()
+        return [self._with_estado_temporal(item) for item in items]
 
     def create(self, data: AvisoCreateDTO, current_admin_id: int):
         aviso = AvisoModel(**data.model_dump())
@@ -55,8 +58,10 @@ class AvisoService:
         updates = data.model_dump(exclude_unset=True)
         for key, value in updates.items():
             setattr(aviso, key, value)
+        
         if "fecha_publicacion" in updates:
             aviso.estado = self._resolve_estado(aviso.fecha_publicacion)
+            
         updated_aviso = self.repository.update(aviso)
         self.auth_repository.create_auditoria(
             admin_id=current_admin_id,
@@ -65,18 +70,20 @@ class AvisoService:
         )
         return self._with_estado_temporal(updated_aviso)
 
+    def cambiar_estado(self, aviso_id: int, data: AvisoEstadoUpdateDTO, current_admin_id: int):
+        aviso = self._get_model_by_id(aviso_id)
+        aviso.estado = data.estado
+        updated_aviso = self.repository.update(aviso)
+        self.auth_repository.create_auditoria(
+            admin_id=current_admin_id,
+            accion="CAMBIAR_ESTADO_AVISO",
+            descripcion=f"Estado de aviso '{aviso.titulo}' cambiado a {aviso.estado}",
+        )
+        return self._with_estado_temporal(updated_aviso)
+
     def delete(self, aviso_id: int, current_admin_id: int):
         aviso = self._get_model_by_id(aviso_id)
-        deleted = {
-            "id_aviso": aviso.id_aviso,
-            "titulo": aviso.titulo,
-            "descripcion": aviso.descripcion,
-            "tipo": aviso.tipo,
-            "fecha_creacion": aviso.fecha_creacion,
-            "fecha_publicacion": aviso.fecha_publicacion,
-            "estado": aviso.estado,
-            "estado_temporal": self._calculate_estado_temporal(aviso),
-        }
+        deleted = self._with_estado_temporal(aviso)
         self.repository.delete(aviso)
         self.auth_repository.create_auditoria(
             admin_id=current_admin_id,
