@@ -3,7 +3,6 @@ from sqlalchemy import or_
 from app.modules.personas.persona_model import (
     ColaboradorModel,
     DirectorModel,
-    EstudianteModel,
     PersonaModel,
 )
 
@@ -19,11 +18,6 @@ class PersonaRepository:
         self.db.add(persona)
         self.db.flush()
         return persona
-
-    def create_estudiante(self, estudiante: EstudianteModel):
-        self.db.add(estudiante)
-        return estudiante
-
     def create_director(self, director: DirectorModel):
         self.db.add(director)
         return director
@@ -31,19 +25,7 @@ class PersonaRepository:
     def create_colaborador(self, colaborador: ColaboradorModel):
         self.db.add(colaborador)
         return colaborador
-
-    def list_estudiantes(self, skip: int, limit: int):
-        return (
-            self.db.query(EstudianteModel, PersonaModel)
-            .join(PersonaModel, EstudianteModel.id_estudiante == PersonaModel.id_persona)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def count_estudiantes(self):
-        return self.db.query(EstudianteModel).count()
-
+    
     def list_directores(self, skip: int, limit: int):
         return (
             self.db.query(DirectorModel, PersonaModel)

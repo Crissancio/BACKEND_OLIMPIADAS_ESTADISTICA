@@ -4,7 +4,6 @@ from app.core.exceptions import NotFoundError
 from app.modules.personas.persona_model import (
     ColaboradorModel,
     DirectorModel,
-    EstudianteModel,
     PersonaModel,
 )
 from app.modules.personas.persona_repository import PersonaRepository
@@ -12,7 +11,6 @@ from app.modules.personas.persona_schema import (
     ColaboradorCreateDTO,
     ColaboradorUpdateDTO,
     DirectorCreateDTO,
-    EstudianteCreateDTO,
     DirectorUpdateDTO
 )
 from app.core.supabase_storage import SupabaseStorageClient
@@ -23,30 +21,7 @@ class PersonaService:
         self.db = db
         self.repository = PersonaRepository(db)
         self.storage = SupabaseStorageClient()
-
-    def list_estudiantes(self, page: int, limit: int):
-        skip = (page - 1) * limit
-        rows = self.repository.list_estudiantes(skip=skip, limit=limit)
-        total = self.repository.count_estudiantes()
-        items = [
-            {
-                "id_estudiante": estudiante.id_estudiante,
-                "nombres": persona.nombres,
-                "paterno": persona.paterno,
-                "materno": persona.materno,
-                "id_colegio": estudiante.id_colegio,
-                "carnet_identidad": estudiante.carnet_identidad,
-                "curso": estudiante.curso,
-                "nivel": estudiante.nivel,
-                "fecha_nacimiento": estudiante.fecha_nacimiento,
-                "rude": estudiante.rude,
-                "telefono": estudiante.telefono,
-                "correo": estudiante.correo,
-            }
-            for estudiante, persona in rows
-        ]
-        return items, total
-
+    
     def list_directores(self, page: int, limit: int):
         skip = (page - 1) * limit
         rows = self.repository.list_directores(skip=skip, limit=limit)
@@ -125,50 +100,7 @@ class PersonaService:
             for colaborador, persona in rows
         ]
         return items, total
-        
-
-    def create_estudiante(self, data: EstudianteCreateDTO):
-        try:
-            persona = PersonaModel(
-                nombres=data.nombres,
-                paterno=data.paterno,
-                materno=data.materno
-            )
-            self.repository.create_persona(persona)  # hace self.db.add(persona)
-            
-            estudiante = EstudianteModel(
-                id_estudiante=persona.id_persona,
-                id_colegio=data.id_colegio,
-                carnet_identidad=data.carnet_identidad,
-                curso=data.curso,
-                nivel=data.nivel,
-                fecha_nacimiento=data.fecha_nacimiento,
-                rude=data.rude,
-                telefono=data.telefono,
-                correo=data.correo,
-            )
-            self.repository.create_estudiante(estudiante)
-            
-            self.db.commit()   # ← commit explícito
-            
-            return {
-                "id_estudiante": estudiante.id_estudiante,
-                "nombres": persona.nombres,
-                "paterno": persona.paterno,
-                "materno": persona.materno,
-                "id_colegio": estudiante.id_colegio,
-                "carnet_identidad": estudiante.carnet_identidad,
-                "curso": estudiante.curso,
-                "nivel": estudiante.nivel,
-                "fecha_nacimiento": estudiante.fecha_nacimiento,
-                "rude": estudiante.rude,
-                "telefono": estudiante.telefono,
-                "correo": estudiante.correo,
-            }
-        except Exception:
-            self.db.rollback()   # ← rollback si algo falla
-            raise
-
+    
     def create_director(self, data: DirectorCreateDTO):
         try:
             persona = PersonaModel(

@@ -1,6 +1,4 @@
-from datetime import date
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -18,33 +16,6 @@ class PersonaResponseDTO(PersonaBaseDTO):
     id_persona: int
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class EstudianteBaseDTO(BaseModel):
-    id_colegio: int
-    carnet_identidad: str
-    curso: int
-    nivel: str
-    fecha_nacimiento: date
-    rude: Optional[str] = None
-    telefono: Optional[int] = None
-    correo: Optional[str] = None
-
-
-class EstudianteCreateDTO(EstudianteBaseDTO):
-    nombres: str
-    paterno: str
-    materno: Optional[str] = None
-
-
-class EstudianteResponseDTO(EstudianteBaseDTO):
-    id_estudiante: int
-    nombres: str
-    paterno: str
-    materno: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
 
 class DirectorBaseDTO(BaseModel):
     id_colegio: Optional[int] = None
