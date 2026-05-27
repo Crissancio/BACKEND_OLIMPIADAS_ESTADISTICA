@@ -45,12 +45,16 @@ class PublicBffService:
             self.categoria_service.get_resumen_by_convocatoria, convocatoria.id_convocatoria
         )
         materiales_principales_task = asyncio.to_thread(
-            self._safe_get_materiales_principales_inicio,
-            convocatoria.id_convocatoria,
+            self.material_service.get_principales_public,
+            None,
         )
-        categorias, avisos, materiales_principales = await asyncio.gather(categorias_task, avisos_task, materiales_principales_task)
+        categorias, avisos, materiales_principales = await asyncio.gather(
+            categorias_task,
+            avisos_task,
+            materiales_principales_task,
+        )
         return {
-            "convocatoria": convocatoria,
+            "convocatoria": self._map_convocatoria(convocatoria),
             "material_principal": self._format_material_principal(materiales_principales or []),
             "categorias": self._format_categorias_inicio(convocatoria, categorias or []),
             "avisos": self._format_avisos(avisos or []),
@@ -104,7 +108,7 @@ class PublicBffService:
         )
         materiales = materiales_data[0]
         return {
-            "convocatoria": convocatoria,
+            "convocatoria": self._map_convocatoria(convocatoria),
             "categorias": self._format_categorias_detalle(categorias or []),
             "materiales": self._format_materiales_simples(materiales or []),
             "afiche": self._format_material_principal_detalle(afiche),
@@ -150,19 +154,24 @@ class PublicBffService:
         except Exception:
             return None
     ####
-    def _safe_get_materiales_principales_inicio(self, convocatoria_id: int):
-        try:
-            return self.material_service.get_all_material_principal(convocatoria_id)
-        except Exception:
-            return []
+    def _map_convocatoria(self, convocatoria):
+        if convocatoria is None:
+            return None
+        data = convocatoria.__dict__.copy()
+        data.pop("_sa_instance_state", None)
+        data["estado_temporal"] = self.convocatoria_service.calculate_estado_temporal(convocatoria)
+        return data
 
     def _format_material_principal(self, materiales):
         if not materiales:
             return []
-        return [{
-            "enlace_acceso": material.enlace_acceso,
-            "importancia_tipo": material.importancia_tipo,
-        } for material in materiales]
+        return [
+            {
+                "enlace_acceso": material.enlace_acceso,
+                "importancia_tipo": importancia_tipo,
+            }
+            for material, importancia_tipo in materiales
+        ]
 
     def _format_categorias_inicio(self, convocatoria, categorias):
         return [

@@ -15,6 +15,7 @@ class ConvocatoriaBaseDTO(BaseModel):
     fecha_fin_inscripcion: Optional[datetime] = None
     monto_inscripcion: Optional[float] = None
     estado: str
+    fecha_creacion: Optional[datetime] = None
 
 
 class ConvocatoriaCreateDTO(BaseModel):
@@ -42,5 +43,6 @@ class ConvocatoriaUpdateDTO(BaseModel):
 
 class ConvocatoriaResponseDTO(ConvocatoriaBaseDTO):
     id_convocatoria: int
+    estado_temporal: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

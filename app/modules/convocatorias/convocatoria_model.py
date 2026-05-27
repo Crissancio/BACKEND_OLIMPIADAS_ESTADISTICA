@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Column, Date, DateTime, Integer, Numeric, String, Text, func
 
 from app.db.database import Base
 
@@ -16,3 +16,4 @@ class ConvocatoriaModel(Base):
     fecha_fin_inscripcion = Column(DateTime, nullable=True)
     monto_inscripcion = Column(Numeric(10, 2), nullable=True)
     estado = Column(String(20), nullable=False)
+    fecha_creacion = Column(DateTime, nullable=False, server_default=func.now())

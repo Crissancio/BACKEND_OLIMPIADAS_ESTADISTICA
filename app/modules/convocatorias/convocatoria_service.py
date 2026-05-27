@@ -50,26 +50,52 @@ class ConvocatoriaService:
         raise BusinessRuleError("No se puede eliminar una convocatoria")
 
     def get_activa_o_reciente(self):
-        convocatoria = self.repository.get_active()
-        if convocatoria:
-            return convocatoria
-        convocatoria = self.repository.get_last_finalizada()
-        if not convocatoria:
+        publicadas = self.repository.get_publicadas()
+        if not publicadas:
             raise NotFoundError("No hay convocatorias disponibles")
-        return convocatoria
+
+        for convocatoria in publicadas:
+            if self.calculate_estado_temporal(convocatoria) == "ACTIVA":
+                return convocatoria
+
+        publicadas_ordenadas = sorted(
+            publicadas,
+            key=lambda item: item.fin_olimpiadas or datetime.min.date(),
+            reverse=True,
+        )
+        return publicadas_ordenadas[0]
 
     def publish(self, convocatoria_id: int):
         convocatoria = self.get_by_id(convocatoria_id)
         if convocatoria.estado != "BORRADOR":
             raise BusinessRuleError("Solo se puede publicar una convocatoria en borrador")
 
-        if convocatoria.fecha_inicio_inscripcion is None or convocatoria.fecha_fin_inscripcion is None:
-            raise BusinessRuleError("Fechas de inscripcion obligatorias")
-
-        now = datetime.now()
-        if convocatoria.fecha_inicio_inscripcion <= now <= convocatoria.fecha_fin_inscripcion:
-            convocatoria.estado = "INSCRIPCION EN CURSO"
-        else:
-            convocatoria.estado = "PROXIMA"
+        convocatoria.estado = "PUBLICADA"
 
         return self.repository.update(convocatoria)
+
+    def calculate_estado_temporal(self, convocatoria: ConvocatoriaModel):
+        ahora = datetime.now()
+
+        if convocatoria.estado == "BORRADOR":
+            return "BORRADOR"
+
+        if convocatoria.estado == "CANCELADA":
+            return "CANCELADA"
+
+        if convocatoria.fecha_inicio_inscripcion and ahora < convocatoria.fecha_inicio_inscripcion:
+            return "PROXIMA"
+
+        if (
+            convocatoria.fecha_inicio_inscripcion
+            and convocatoria.fecha_fin_inscripcion
+            and convocatoria.fecha_inicio_inscripcion <= ahora <= convocatoria.fecha_fin_inscripcion
+        ):
+            return "INSCRIPCION EN CURSO"
+
+        if convocatoria.fin_olimpiadas and ahora.date() <= convocatoria.fin_olimpiadas:
+            return "ACTIVA"
+        if convocatoria.fin_olimpiadas:
+            return "FINALIZADA"
+
+        return "PROXIMA"

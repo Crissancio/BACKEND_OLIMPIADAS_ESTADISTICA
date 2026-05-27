@@ -35,22 +35,9 @@ class ConvocatoriaRepository:
         self.db.delete(convocatoria)
         self.db.commit()
 
-    def get_active(self):
+    def get_publicadas(self):
         return (
             self.db.query(ConvocatoriaModel)
-            .filter(
-                ConvocatoriaModel.estado.in_(
-                    ["ACTIVA", "PROXIMA", "FINALIZADA", "INSCRIPCION EN CURSO"]
-                )
-            )
-            .order_by(ConvocatoriaModel.id_convocatoria.desc())
-            .first()
-        )
-
-    def get_last_finalizada(self):
-        return (
-            self.db.query(ConvocatoriaModel)
-            .filter(ConvocatoriaModel.estado == "FINALIZADA")
-            .order_by(ConvocatoriaModel.fin_olimpiadas.desc())
-            .first()
+            .filter(ConvocatoriaModel.estado == "PUBLICADA")
+            .all()
         )

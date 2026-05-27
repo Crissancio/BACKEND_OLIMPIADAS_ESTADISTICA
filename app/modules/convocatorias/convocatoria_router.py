@@ -20,7 +20,13 @@ def listar_convocatorias(page: int = 1, limit: int = 10, db: Session = Depends(g
     service = ConvocatoriaService(db)
     items, total = service.get_all(page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
-    data = PaginatedData(items=items, meta=meta)
+    mapped = []
+    for item in items:
+        data_item = item.__dict__.copy()
+        data_item.pop("_sa_instance_state", None)
+        data_item["estado_temporal"] = service.calculate_estado_temporal(item)
+        mapped.append(data_item)
+    data = PaginatedData(items=mapped, meta=meta)
     return PaginatedResponse(data=data, message="Lista obtenida correctamente")
 
 
@@ -28,7 +34,10 @@ def listar_convocatorias(page: int = 1, limit: int = 10, db: Session = Depends(g
 def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
     service = ConvocatoriaService(db)
     convocatoria = service.get_by_id(convocatoria_id)
-    return ResponseBase(data=convocatoria, message="Operacion exitosa")
+    data = convocatoria.__dict__.copy()
+    data.pop("_sa_instance_state", None)
+    data["estado_temporal"] = service.calculate_estado_temporal(convocatoria)
+    return ResponseBase(data=data, message="Operacion exitosa")
 
 
 @router.post("", response_model=ResponseBase[ConvocatoriaResponseDTO])
