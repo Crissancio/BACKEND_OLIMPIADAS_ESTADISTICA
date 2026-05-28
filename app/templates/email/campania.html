@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}
+{{ asunto }}
+{% endblock %}
+{% block content %}
+<h1
+    style="
+        margin: 0 0 20px 0;
+        font-size: 24px;
+        color: #0f172a;
+    "
+>
+    Hola {{ usuario }},
+</h1>
+<p
+    style="
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #475569;
+    "
+>
+    {{ contenido_mensaje }}
+</p>
+{% if contenido_secundario %}
+<p
+    style="
+        margin: 0 0 30px 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #475569;
+    "
+>
+    {{ contenido_secundario }}
+</p>
+{% endif %}
+
+{% if enlaces %}
+<table
+    width="100%"
+    cellpadding="0"
+    cellspacing="0"
+    border="0"
+    style="margin-bottom: 35px;"
+>
+    <tr>
+        <td align="center">
+            {% for enlace in enlaces %}
+            <table
+                cellpadding="0"
+                cellspacing="0"
+                border="0"
+                style="margin-bottom: 15px;"
+            >
+                <tr>
+                    <td align="center">
+                        <a
+                            href="{{ enlace.url }}"
+                            style="
+                                display: inline-block;
+                                background-color: #f59e0b;
+                                color: #1e3a8a;
+                                font-weight: bold;
+                                font-size: 16px;
+                                text-decoration: none;
+                                padding: 14px 28px;
+                                border-radius: 6px;
+                            "
+                        >
+                            {{ enlace.texto }}
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            {% endfor %}
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<p
+    style="
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #475569;
+    "
+>
+    Atentamente,
+    <br>
+
+    <strong style="color: #1e3a8a;">
+        Olimpiada Paceña de Estadística
+    </strong>
+</p>
+
+{% endblock %}

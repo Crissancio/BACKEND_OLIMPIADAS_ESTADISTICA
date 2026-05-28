@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Olimpiada Paceña de Estadística{% endblock %}</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: Arial, Helvetica, sans-serif;">
+
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+        style="background-color: #f0f4f8; padding: 40px 20px;"
+    >
+        <tr>
+            <td align="center">
+
+                <!-- Main Container -->
+                <table
+                    width="600"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    style="
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                    "
+                >
+
+                    <!-- Header -->
+                    <tr>
+                        <td
+                            align="center"
+                            style="
+                                background-color: #1e3a8a;
+                                padding: 40px 20px;
+                                border-bottom: 4px solid #f59e0b;
+                            "
+                        >
+
+                            <!-- Logo -->
+                            <img
+                                src="{{ logo_url }}"
+                                alt="Logo OPE"
+                                width="80"
+                                height="80"
+                                style="
+                                    display: block;
+                                    border-radius: 50%;
+                                    margin-bottom: 20px;
+                                    background-color: #ffffff;
+                                    border: 2px solid #ffffff;
+                                "
+                            >
+
+                            <h1
+                                style="
+                                    margin: 0;
+                                    color: #ffffff;
+                                    font-size: 22px;
+                                    font-weight: bold;
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                    line-height: 1.3;
+                                "
+                            >
+                                Olimpiada Paceña de Estadística
+                            </h1>
+
+                            <p
+                                style="
+                                    margin: 10px 0 0 0;
+                                    color: #bfdbfe;
+                                    font-size: 15px;
+                                    font-weight: bold;
+                                "
+                            >
+                                Carrera de Estadística
+                            </p>
+
+                            <p
+                                style="
+                                    margin: 5px 0 0 0;
+                                    color: #93c5fd;
+                                    font-size: 13px;
+                                "
+                            >
+                                Facultad de Ciencias Puras y Naturales
+                            </p>
+
+                            <p
+                                style="
+                                    margin: 5px 0 0 0;
+                                    color: #93c5fd;
+                                    font-size: 13px;
+                                "
+                            >
+                                Universidad Mayor de San Andrés
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td
+                            style="
+                                padding: 40px 30px;
+                                color: #334155;
+                            "
+                        >
+
+                            {% block content %}
+                            <p
+                                style="
+                                    font-size: 16px;
+                                    margin: 0;
+                                    color: #64748b;
+                                    font-style: italic;
+                                    text-align: center;
+                                "
+                            >
+                                Área de contenido base
+                            </p>
+                            {% endblock %}
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td
+                            style="
+                                background-color: #f8fafc;
+                                padding: 25px 30px;
+                                border-top: 1px solid #e2e8f0;
+                                text-align: center;
+                            "
+                        >
+
+                            <p style="margin: 0; font-size: 14px;">
+
+                                <a
+                                    href="{{ url_ope }}"
+                                    style="
+                                        color: #1e3a8a;
+                                        text-decoration: none;
+                                        font-weight: bold;
+                                        margin: 0 10px;
+                                    "
+                                >
+                                    Página Oficial OPE
+                                </a>
+
+                                |
+
+                                <a
+                                    href="{{ url_estadistica }}"
+                                    style="
+                                        color: #1e3a8a;
+                                        text-decoration: none;
+                                        font-weight: bold;
+                                        margin: 0 10px;
+                                    "
+                                >
+                                    Carrera de Estadística
+                                </a>
+
+                            </p>
+
+                            <p
+                                style="
+                                    margin: 15px 0 0 0;
+                                    font-size: 12px;
+                                    color: #94a3b8;
+                                    line-height: 1.6;
+                                "
+                            >
+                                © {{ current_year }} Olimpiada Paceña de Estadística.
+                                <br>
+                                Universidad Mayor de San Andrés.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
