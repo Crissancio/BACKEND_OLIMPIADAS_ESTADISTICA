@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 class ColegioMinimoDTO(BaseModel):
     id_colegio: int
     nombre: str
-    
+    turno: str
     model_config = ConfigDict(from_attributes=True)
 
 class EstudianteBaseDTO(BaseModel):
