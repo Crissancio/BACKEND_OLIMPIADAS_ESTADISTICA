@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, UniqueConstraint, Text, JSON
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -17,6 +17,9 @@ class CampaniaEmail(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(255), nullable=False)
     asunto = Column(String(255), nullable=False)
+    contenido_mensaje = Column(Text, nullable=False)
+    contenido_secundario = Column(Text, nullable=True)
+    enlaces = Column(JSON, nullable=True)
     estado = Column(Enum(EstadoCampania), nullable=False, default=EstadoCampania.BORRADOR)
     fecha_creacion = Column(DateTime, nullable=False, default=func.now())
     fecha_programada = Column(DateTime, nullable=True)
@@ -30,7 +33,6 @@ class CampaniaEmail(Base):
 
 class CampaniaDestinatario(Base):
     __tablename__ = "campania_destinatario"
-
     id = Column(Integer, primary_key=True, index=True)
     id_campania = Column(Integer, ForeignKey("campania_email.id", ondelete="CASCADE"), nullable=False)
     id_estudiante = Column(Integer, ForeignKey("estudiante.id_estudiante", ondelete="CASCADE"), nullable=False)

@@ -9,10 +9,9 @@ class EmailRenderer:
             autoescape=select_autoescape(['html', 'xml'])
         )
 
-    def render_campania(self, title: str, asunto: str, usuario: str, contenido_mensaje: str, contenido_secundario: str = "", enlaces: list = None) -> str:
+    def render_campania(self, asunto: str, usuario: str, contenido_mensaje: str, contenido_secundario: str = None, enlaces: list = None) -> str:
         template = self.env.get_template("campania.html")
         return template.render(
-            title=title,
             asunto=asunto,
             usuario=usuario,
             contenido_mensaje=contenido_mensaje,

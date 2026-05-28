@@ -18,8 +18,42 @@ from app.modules.inscripciones.inscripcion_router import router as inscripcion_r
 from app.modules.materiales.material_router import router as material_router
 from app.modules.personas.persona_router import router as persona_router
 from app.modules.public_bff.public_router import router as public_router
+from app.modules.campanias.campania_router import router as campanias_router
+from app.modules.email_logs.email_log_router import router as email_logs_router
 
-app = FastAPI()
+import logging
+from contextlib import asynccontextmanager
+from app.core.config import settings
+from app.scheduler.scheduler import scheduler
+
+logging.basicConfig(
+    level=settings.log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logging.getLogger("apscheduler").setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.scheduler_enabled:
+        scheduler.start()
+        logger.info(
+            "APScheduler iniciado correctamente"
+        )
+    else:
+        logger.warning(
+            "APScheduler deshabilitado"
+        )
+    yield
+    if settings.scheduler_enabled:
+        scheduler.shutdown()
+        logger.info(
+            "APScheduler detenido"
+        )
+        
+
+
+app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 
 app.add_middleware(
@@ -46,3 +80,5 @@ app.include_router(inscripcion_router)
 app.include_router(material_router)
 app.include_router(persona_router)
 app.include_router(public_router)
+app.include_router(campanias_router, prefix="/api/v1")
+app.include_router(email_logs_router, prefix="/api/v1")

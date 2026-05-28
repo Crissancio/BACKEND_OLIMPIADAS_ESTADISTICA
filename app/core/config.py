@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 class Settings(BaseSettings):
     database_url: str = ""
@@ -17,9 +16,7 @@ class Settings(BaseSettings):
     supabase_bucket_materiales: str = "materiales"
     port: int = 8000
     cloudflare_secret_key: str = ""
-
-    model_config = SettingsConfigDict(env_file=".env", extra="allow")
-
+    
     brevo_api_key: str = ""
     brevo_base_url: str = "https://api.brevo.com/v3"
     brevo_sender_name: str = ""
@@ -37,7 +34,7 @@ class Settings(BaseSettings):
     scheduler_enabled: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
-    
+    log_level: str = "DEBUG"
     def get_database_url(self) -> str:
         if self.database_url:
             return self.database_url
