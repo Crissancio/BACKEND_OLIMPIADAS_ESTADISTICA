@@ -1,13 +1,13 @@
-from datetime import date
-
+from datetime import date, datetime
+from typing import Optional
 from sqlalchemy.orm import Session
-
+from sqlalchemy import or_, and_, case
 from app.modules.categorias.categoria_model import CategoriaModel
 from app.modules.colegios.colegio_model import ColegioModel
 from app.modules.convocatorias.convocatoria_model import ConvocatoriaModel
 from app.modules.inscripciones.inscripcion_model import InscripcionModel
-from app.modules.personas.persona_model import EstudianteModel, PersonaModel
-
+from app.modules.estudiantes.estudiante_model import EstudianteModel
+from app.modules.personas.persona_model import PersonaModel
 
 class InscripcionRepository:
     def __init__(self, db: Session):
@@ -19,16 +19,19 @@ class InscripcionRepository:
     def get_categoria(self, categoria_id: int):
         return self.db.query(CategoriaModel).filter(CategoriaModel.id_categoria == categoria_id).first()
 
+    def buscar_categoria_automatica(self, convocatoria_id: int, curso: int, nivel: str):
+        return self.db.query(CategoriaModel).filter(
+            CategoriaModel.id_convocatoria == convocatoria_id,
+            CategoriaModel.nivel.ilike(nivel),
+            CategoriaModel.curso_min <= curso,
+            CategoriaModel.curso_max >= curso
+        ).first()
+
     def get_colegio(self, colegio_id: int):
         return self.db.query(ColegioModel).filter(ColegioModel.id_colegio == colegio_id).first()
 
-    def get_colegio_by_codigo(self, codigo: int):
-        return self.db.query(ColegioModel).filter(ColegioModel.codigo == codigo).first()
-
-    def create_colegio(self, colegio: ColegioModel):
-        self.db.add(colegio)
-        self.db.flush()
-        return colegio
+    def get_estudiante_by_id(self, estudiante_id: int):
+        return self.db.query(EstudianteModel).filter(EstudianteModel.id_estudiante == estudiante_id).first()
 
     def get_estudiante_by_ci(self, carnet_identidad: str):
         return (
@@ -65,13 +68,71 @@ class InscripcionRepository:
             .first()
         )
 
+    def get_by_id(self, inscripcion_id: int):
+        return self.db.query(InscripcionModel).filter(InscripcionModel.id_inscripcion == inscripcion_id).first()
+
     def create_inscripcion(self, inscripcion: InscripcionModel):
         self.db.add(inscripcion)
         self.db.flush()
         return inscripcion
 
-    def list_all(self, skip: int, limit: int):
-        return self.db.query(InscripcionModel).offset(skip).limit(limit).all()
+    def list_inscripciones_avanzado(
+        self,
+        skip: int,
+        limit: int,
+        id_colegio: Optional[int] = None,
+        id_categoria: Optional[int] = None,
+        estado: Optional[str] = None,
+        search_nombre: Optional[str] = None,
+        search_documento: Optional[str] = None,
+        fecha_inicio: Optional[datetime] = None,
+        fecha_fin: Optional[datetime] = None
+    ):
+        query = self.db.query(InscripcionModel).join(EstudianteModel).join(PersonaModel)
 
-    def count_all(self):
-        return self.db.query(InscripcionModel).count()
+        if id_colegio:
+            query = query.filter(EstudianteModel.id_colegio == id_colegio)
+        if id_categoria:
+            query = query.filter(InscripcionModel.id_categoria == id_categoria)
+        if estado:
+            query = query.filter(InscripcionModel.estado == estado)
+        if fecha_inicio:
+            query = query.filter(InscripcionModel.fecha_inscripcion >= fecha_inicio)
+        if fecha_fin:
+            query = query.filter(InscripcionModel.fecha_inscripcion <= fecha_fin)
+        
+        if search_nombre:
+            query = query.filter(
+                or_(
+                    PersonaModel.nombres.ilike(f"%{search_nombre}%"),
+                    PersonaModel.paterno.ilike(f"%{search_nombre}%"),
+                    PersonaModel.materno.ilike(f"%{search_nombre}%")
+                )
+            )
+            
+        if search_documento:
+            query = query.filter(
+                or_(
+                    EstudianteModel.carnet_identidad == search_documento,
+                    EstudianteModel.rude == search_documento
+                )
+            )
+
+        orden_ponderado = case(
+            (InscripcionModel.estado == "PENDIENTE", 1),
+            (InscripcionModel.estado == "APROBADO", 2),
+            (InscripcionModel.estado == "RECHAZADO", 3),
+            else_=4
+        )
+        
+        query = query.order_by(orden_ponderado, InscripcionModel.fecha_inscripcion.desc())
+        
+        total = query.count()
+        items = query.offset(skip).limit(limit).all()
+        return items, total
+
+    def delete(self, inscripcion: InscripcionModel):
+        self.db.delete(inscripcion)
+
+    def commit(self):
+        self.db.commit()

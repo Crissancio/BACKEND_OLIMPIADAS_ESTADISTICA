@@ -1,8 +1,6 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
-
+from sqlalchemy.orm import relationship
 from app.db.database import Base
-
-
 class InscripcionModel(Base):
     __tablename__ = "inscripcion"
 
@@ -12,3 +10,7 @@ class InscripcionModel(Base):
     id_categoria = Column(Integer, ForeignKey("categoria.id_categoria"), nullable=False, index=True)
     fecha_inscripcion = Column(DateTime, nullable=False, server_default=func.now())
     estado = Column(String(20), nullable=False, server_default="PENDIENTE")
+
+    estudiante = relationship("EstudianteModel", lazy="joined")
+    convocatoria = relationship("ConvocatoriaModel", lazy="joined")
+    categoria = relationship("CategoriaModel", lazy="joined")
