@@ -27,6 +27,7 @@ class FaseModel(Base):
     modalidad = Column(Enum(ModalidadFase, name="modalidad_fase"), nullable=False)
     estado = Column(Enum(EstadoEntidad, name="estado_entidad"), nullable=False, default=EstadoEntidad.BORRADOR)
 
+    categoria = relationship("CategoriaModel", back_populates="fases")
     prueba = relationship("FasePruebaModel", back_populates="fase_base", uselist=False, cascade="all, delete")
     preparacion = relationship("FasePreparacionModel", back_populates="fase_base", uselist=False, cascade="all, delete")
 

@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     scheduler_timezone: str = "America/La_Paz"
     mailing_enabled: int = 1
     scheduler_enabled: int = 1
+    
+    first_admin_username: str = ""
+    first_admin_email: str = ""
+    first_admin_password: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
     log_level: str = "DEBUG"

@@ -20,6 +20,8 @@ from app.modules.personas.persona_router import router as persona_router
 from app.modules.public_bff.public_router import router as public_router
 from app.modules.campanias.campania_router import router as campanias_router
 from app.modules.email_logs.email_log_router import router as email_logs_router
+from contextlib import asynccontextmanager
+from app.core.startup import create_initial_admin
 
 import logging
 from contextlib import asynccontextmanager
@@ -35,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    
+    create_initial_admin()
+    
     if settings.scheduler_enabled:
         scheduler.start()
         logger.info(
@@ -62,7 +67,7 @@ app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url]if hasattr(settings, 'FRONTEND_URL') else ["*"],
+    allow_origins=[settings.frontend_url]if hasattr(settings, 'frontend_url') else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
