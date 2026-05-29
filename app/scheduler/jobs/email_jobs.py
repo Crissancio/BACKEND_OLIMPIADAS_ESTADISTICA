@@ -11,6 +11,7 @@ renderer = EmailRenderer()
 
 def process_scheduled_campaigns():
     db: Session = SessionLocal()
+    renderer = EmailRenderer()
     try:
         campanias = db.query(CampaniaEmail).filter(
             CampaniaEmail.estado == EstadoCampania.PROGRAMADA,
