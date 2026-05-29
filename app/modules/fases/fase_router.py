@@ -1,74 +1,35 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
 from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta, ResponseBase
 from app.db.database import get_db
 from app.modules.fases.fase_schema import (
-    FaseCreateDTO,
+    FaseEstadoUpdateDTO,
     FasePreparacionCreateDTO,
     FasePreparacionResponseDTO,
+    FasePreparacionUpdateDTO,
     FasePruebaCreateDTO,
     FasePruebaResponseDTO,
-    FaseResponseDTO,
-    FaseUpdateDTO,
+    FasePruebaUpdateDTO,
+    FaseResponsePolymorphic,
 )
 from app.modules.fases.fase_service import FaseService
 
-
 router = APIRouter(prefix="/fases", tags=["fases"])
 
-
-@router.get("", response_model=PaginatedResponse[FaseResponseDTO])
+@router.get("", response_model=PaginatedResponse[FaseResponsePolymorphic])
 def listar_fases(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     service = FaseService(db)
     items, total = service.get_all(page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
     data = PaginatedData(items=items, meta=meta)
-    return PaginatedResponse(data=data, message="Lista obtenida correctamente")
+    return PaginatedResponse(data=data, message="Lista de fases obtenida correctamente")
 
-
-@router.get("/{fase_id}", response_model=ResponseBase[FaseResponseDTO])
+@router.get("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
 def obtener_fase(fase_id: int, db: Session = Depends(get_db)):
     service = FaseService(db)
     fase = service.get_by_id(fase_id)
-    return ResponseBase(data=fase, message="Operacion exitosa")
-
-
-@router.post("", response_model=ResponseBase[FaseResponseDTO])
-def crear_fase(
-    data: FaseCreateDTO,
-    db: Session = Depends(get_db),
-    current_admin_id: int = Depends(get_current_admin),
-):
-    service = FaseService(db)
-    fase = service.create(data)
-    return ResponseBase(data=fase, message="Operacion exitosa")
-
-
-@router.put("/{fase_id}", response_model=ResponseBase[FaseResponseDTO])
-def actualizar_fase(
-    fase_id: int,
-    data: FaseUpdateDTO,
-    db: Session = Depends(get_db),
-    current_admin_id: int = Depends(get_current_admin),
-):
-    service = FaseService(db)
-    fase = service.update(fase_id, data)
-    return ResponseBase(data=fase, message="Operacion exitosa")
-
-
-@router.delete("/{fase_id}", response_model=ResponseBase[FaseResponseDTO])
-def eliminar_fase(
-    fase_id: int,
-    db: Session = Depends(get_db),
-    current_admin_id: int = Depends(get_current_admin),
-):
-    service = FaseService(db)
-    fase = service.get_by_id(fase_id)
-    service.delete(fase_id)
-    return ResponseBase(data=fase, message="Operacion exitosa")
-
+    return ResponseBase(data=fase, message="Fase obtenida exitosamente")
 
 @router.post("/prueba", response_model=ResponseBase[FasePruebaResponseDTO])
 def crear_fase_prueba(
@@ -78,8 +39,18 @@ def crear_fase_prueba(
 ):
     service = FaseService(db)
     resultado = service.create_fase_prueba(data)
-    return ResponseBase(data=resultado, message="Operacion exitosa")
+    return ResponseBase(data=resultado, message="Fase de Prueba creada exitosamente")
 
+@router.put("/prueba/{fase_id}", response_model=ResponseBase[FasePruebaResponseDTO])
+def actualizar_fase_prueba(
+    fase_id: int,
+    data: FasePruebaUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
+    service = FaseService(db)
+    fase = service.update_fase_prueba(fase_id, data)
+    return ResponseBase(data=fase, message="Fase de Prueba actualizada exitosamente")
 
 @router.post("/preparacion", response_model=ResponseBase[FasePreparacionResponseDTO])
 def crear_fase_preparacion(
@@ -89,4 +60,36 @@ def crear_fase_preparacion(
 ):
     service = FaseService(db)
     resultado = service.create_fase_preparacion(data)
-    return ResponseBase(data=resultado, message="Operacion exitosa")
+    return ResponseBase(data=resultado, message="Fase de Preparación creada exitosamente")
+
+@router.put("/preparacion/{fase_id}", response_model=ResponseBase[FasePreparacionResponseDTO])
+def actualizar_fase_preparacion(
+    fase_id: int,
+    data: FasePreparacionUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
+    service = FaseService(db)
+    fase = service.update_fase_preparacion(fase_id, data)
+    return ResponseBase(data=fase, message="Fase de Preparación actualizada exitosamente")
+
+@router.patch("/{fase_id}/estado", response_model=ResponseBase[FaseResponsePolymorphic])
+def cambiar_estado_fase(
+    fase_id: int,
+    data: FaseEstadoUpdateDTO,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
+    service = FaseService(db)
+    fase = service.cambiar_estado(fase_id, data)
+    return ResponseBase(data=fase, message="Estado de la fase actualizado exitosamente")
+
+@router.delete("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
+def eliminar_fase_logica(
+    fase_id: int,
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
+    service = FaseService(db)
+    fase = service.baja_logica(fase_id)
+    return ResponseBase(data=fase, message="Fase dada de baja correctamente")
