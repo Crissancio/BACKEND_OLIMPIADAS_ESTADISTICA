@@ -17,6 +17,11 @@ class EstudianteModel(Base):
 
     persona = relationship("PersonaModel", lazy="joined")
     colegio = relationship("ColegioModel", lazy="joined")
+    email_logs = relationship("EmailLog", back_populates="estudiante")
+
+    @property
+    def correo(self):
+        return self.persona.correo if self.persona else None
 
     @property
     def nombres(self):
