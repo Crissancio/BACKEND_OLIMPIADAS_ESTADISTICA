@@ -1,5 +1,6 @@
 import enum
 from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, UniqueConstraint, Text, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -19,7 +20,7 @@ class CampaniaEmail(Base):
     asunto = Column(String(255), nullable=False)
     contenido_mensaje = Column(Text, nullable=False)
     contenido_secundario = Column(Text, nullable=True)
-    enlaces = Column(JSON, nullable=True)
+    enlaces = Column(JSONB, nullable=True)
     estado = Column(Enum(EstadoCampania), nullable=False, default=EstadoCampania.BORRADOR)
     fecha_creacion = Column(DateTime, nullable=False, default=func.now())
     fecha_programada = Column(DateTime, nullable=True)

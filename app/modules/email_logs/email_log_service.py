@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.modules.email_logs.email_log_repository import EmailLogRepository
 from app.modules.email_logs.email_log_model import EstadoEmail, EmailLog
-
+from app.core.exceptions import BusinessRuleError
 class EmailLogService:
     def __init__(self, db: Session):
         self.db = db
@@ -24,3 +24,14 @@ class EmailLogService:
             log.estado = EstadoEmail.PENDIENTE
         self.db.commit()
         return len(fallidos)
+    
+    def reintentar_fallido(self, id_log: int):
+        log = self.obtener_por_id(id_log)
+        if log.estado != EstadoEmail.FALLIDO:
+            raise BusinessRuleError("El correo especificado no está en estado FALLIDO")
+        
+        log.estado = EstadoEmail.PENDIENTE
+        log.intentos = 0
+        self.db.commit()
+        self.db.refresh(log)
+        return log

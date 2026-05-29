@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_
 from typing import Optional
 from datetime import datetime
@@ -7,6 +7,9 @@ from app.modules.email_logs.email_log_model import EmailLog
 class EmailLogRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    def _apply_eager_loading(self, query):
+        return query.options(selectinload(EmailLog.estudiante))
 
     def get_all(self, skip: int, limit: int, tipo: Optional[str], estado: Optional[str], 
                 id_campania: Optional[int], es_estudiante: Optional[bool], es_contacto: Optional[bool], es_campania: Optional[bool],
@@ -32,8 +35,11 @@ class EmailLogRepository:
         if intento_start and intento_end: query = query.filter(EmailLog.ultimo_intento.between(intento_start, intento_end))
         
         total = query.count()
+        query = self._apply_eager_loading(query)
         items = query.order_by(EmailLog.fecha_creacion.desc()).offset(skip).limit(limit).all()
         return items, total
 
     def get_by_id(self, id_log: int) -> EmailLog:
-        return self.db.query(EmailLog).filter(EmailLog.id == id_log).first()
+        query = self.db.query(EmailLog).filter(EmailLog.id == id_log)
+        query = self._apply_eager_loading(query)
+        return query.first()

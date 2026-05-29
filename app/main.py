@@ -38,27 +38,31 @@ async def lifespan(app: FastAPI):
     if settings.scheduler_enabled:
         scheduler.start()
         logger.info(
-            "APScheduler iniciado correctamente"
+            "\n\n\t\tAPScheduler iniciado correctamente\n\n"
         )
     else:
         logger.warning(
-            "APScheduler deshabilitado"
+            "\n\n\t\tAPScheduler deshabilitado\n\n"
         )
     yield
     if settings.scheduler_enabled:
         scheduler.shutdown()
         logger.info(
-            "APScheduler detenido"
+            "\n\n\t\tAPScheduler detenido\n\n"
         )
         
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Olimpiada Paceña de Estadística API",
+    version="1.0.0",
+    lifespan=lifespan
+)
 app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.frontend_url]if hasattr(settings, 'FRONTEND_URL') else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,3 +86,7 @@ app.include_router(persona_router)
 app.include_router(public_router)
 app.include_router(campanias_router, prefix="/api/v1")
 app.include_router(email_logs_router, prefix="/api/v1")
+
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "API Operativa"}
