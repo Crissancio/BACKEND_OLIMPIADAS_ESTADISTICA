@@ -84,7 +84,7 @@ def cambiar_estado_fase(
     fase = service.cambiar_estado(fase_id, data)
     return ResponseBase(data=fase, message="Estado de la fase actualizado exitosamente")
 
-@router.delete("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
+@router.patch("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
 def eliminar_fase_logica(
     fase_id: int,
     db: Session = Depends(get_db),
@@ -93,3 +93,13 @@ def eliminar_fase_logica(
     service = FaseService(db)
     fase = service.baja_logica(fase_id)
     return ResponseBase(data=fase, message="Fase dada de baja correctamente")
+
+@router.delete("/{fase_id}")
+def eliminar_fase(
+    fase_id:int,
+    db:Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin),
+):
+    service = FaseService(db)
+    service.eliminar_fase(fase_id)
+    return ResponseBase(data={}, message="Fase eliminada correctamente")

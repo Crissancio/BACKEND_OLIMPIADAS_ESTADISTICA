@@ -55,3 +55,8 @@ class FaseRepository:
         self.db.commit()
         self.db.refresh(entidad_model)
         return entidad_model
+    
+    def delete(self, entidad_model):
+        self.db.delete(entidad_model)
+        self.db.commit()
+        

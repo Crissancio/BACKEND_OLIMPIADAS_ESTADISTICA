@@ -151,3 +151,9 @@ class FaseService:
     def baja_logica(self, fase_id: int):
         dto = FaseEstadoUpdateDTO(estado=EstadoEntidad.ELIMINADA)
         return self.cambiar_estado(fase_id, dto)
+    
+    def eliminar_fase(self, fase_id: int):
+        fase = self.repository.get_by_id(fase_id)
+        if not fase:
+            raise NotFoundError("Fase no encontrada")
+        self.repository.delete(fase)
