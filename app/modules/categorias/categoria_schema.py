@@ -1,15 +1,15 @@
 from typing import Optional
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.modules.categorias.categoria_model import EstadoEntidad, NivelEducativo
 
 
 class CategoriaBaseDTO(BaseModel):
     id_convocatoria: int
     nombre_categoria: str
-    curso: int
-    nivel: str
-    estado: str
+    curso: int = Field(..., ge=1, le=6)
+    nivel: NivelEducativo
 
 
 class CategoriaCreateDTO(CategoriaBaseDTO):
@@ -18,12 +18,16 @@ class CategoriaCreateDTO(CategoriaBaseDTO):
 
 class CategoriaUpdateDTO(BaseModel):
     nombre_categoria: Optional[str] = None
-    curso: Optional[int] = None
-    nivel: Optional[str] = None
-    estado: Optional[str] = None
+    curso: Optional[int] = Field(None, ge=1, le=6)
+    nivel: Optional[NivelEducativo] = None
+
+
+class CategoriaEstadoUpdateDTO(BaseModel):
+    estado: EstadoEntidad
 
 
 class CategoriaResponseDTO(CategoriaBaseDTO):
     id_categoria: int
+    estado: EstadoEntidad
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,7 +1,5 @@
 from sqlalchemy.orm import Session
-
 from app.modules.categorias.categoria_model import CategoriaModel
-
 
 class CategoriaRepository:
     def __init__(self, db: Session):
