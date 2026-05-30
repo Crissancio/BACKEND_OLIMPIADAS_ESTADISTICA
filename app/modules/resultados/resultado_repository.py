@@ -7,6 +7,7 @@ from app.modules.inscripciones.inscripcion_model import InscripcionModel
 from app.modules.estudiantes.estudiante_model import EstudianteModel
 from app.modules.fases.fase_model import FasePruebaModel
 
+
 class ResultadoRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -38,6 +39,7 @@ class ResultadoRepository:
 
     def get_all_avanzado(
         self,
+        id_fase_prueba: int,
         skip: int,
         limit: int,
         search: Optional[str] = None,
@@ -50,6 +52,7 @@ class ResultadoRepository:
             .join(InscripcionModel, ResultadoModel.id_inscripcion == InscripcionModel.id_inscripcion)
             .join(EstudianteModel, InscripcionModel.id_estudiante == EstudianteModel.id_estudiante)
             .join(FasePruebaModel, ResultadoModel.id_fase_prueba == FasePruebaModel.id_fase)
+            .filter(ResultadoModel.id_fase_prueba == id_fase_prueba)
         )
 
         if search:

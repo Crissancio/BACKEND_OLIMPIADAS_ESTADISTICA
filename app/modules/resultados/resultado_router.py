@@ -22,6 +22,7 @@ router = APIRouter(prefix="/resultados", tags=["resultados"])
 
 @router.get("", response_model=PaginatedResponse[ResultadoResponseDTO])
 def listar_resultados(
+    id_fase_prueba: int = Query(..., description="ID de la fase de prueba (obligatorio)"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1),
     search: Optional[str] = None,
@@ -31,7 +32,7 @@ def listar_resultados(
     db: Session = Depends(get_db)
 ):
     service = ResultadoService(db)
-    items, total = service.get_all(page, limit, search, estado_aprobacion, sort_by, sort_order)
+    items, total = service.get_all(id_fase_prueba, page, limit, search, estado_aprobacion, sort_by, sort_order)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
     data = PaginatedData(items=items, meta=meta)
     return PaginatedResponse(data=data, message="Lista de resultados obtenida correctamente")
@@ -47,17 +48,6 @@ def listar_aprobados_por_fase(
     service = ResultadoService(db)
     items = service.get_aprobados_fase(id_fase_prueba, sort_by, sort_order)
     return ResponseBase(data=items, message="Resultados aprobatorios obtenidos correctamente")
-
-@router.get("/fase/{id_fase_prueba}", response_model=ResponseBase[list[ResultadoResponseDTO]])
-def listar_resultados_por_fase(
-    id_fase_prueba: int,
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1),
-    db: Session = Depends(get_db)
-):
-    service = ResultadoService(db)
-    items = service.get_by_fase(id_fase_prueba, page, limit)
-    return ResponseBase(data=items, message="Resultados por fase obtenidos correctamente")
 
 
 @router.get("/{resultado_id}", response_model=ResponseBase[ResultadoResponseDTO])
