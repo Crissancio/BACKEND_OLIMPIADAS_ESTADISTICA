@@ -14,16 +14,16 @@ def create_initial_admin():
 
         if not admin_exists:
             admin = AdministradorModel(
-                username=settings.FIRST_ADMIN_USERNAME,
-                correo=settings.FIRST_ADMIN_EMAIL,
-                password_hash=hash_password(
-                    settings.FIRST_ADMIN_PASSWORD
+                nombre=settings.first_admin_username,
+                correo=settings.first_admin_email,
+                contrasena=hash_password(
+                    settings.first_admin_password
                 )
             )
 
             db.add(admin)
             db.commit()
-            logger.info(f"Administrador inicial creado correctamente. {admin.username}")
+            logger.info(f"Administrador inicial creado correctamente. {admin.nombre}")
         
         logger.info(
                 "Administrador inicial ya existe"
