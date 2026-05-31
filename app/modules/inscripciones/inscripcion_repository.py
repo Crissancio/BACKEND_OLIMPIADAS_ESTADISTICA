@@ -23,8 +23,7 @@ class InscripcionRepository:
         return self.db.query(CategoriaModel).filter(
             CategoriaModel.id_convocatoria == convocatoria_id,
             CategoriaModel.nivel.ilike(nivel),
-            CategoriaModel.curso_min <= curso,
-            CategoriaModel.curso_max >= curso
+            CategoriaModel.curso == curso
         ).first()
 
     def get_colegio(self, colegio_id: int):
@@ -145,7 +144,7 @@ class InscripcionRepository:
                 PersonaModel.paterno,
                 PersonaModel.materno,
                 ColegioModel.nombre.label("colegio_nombre"),
-                CategoriaModel.nombre.label("categoria_nombre"),
+                CategoriaModel.nombre_categoria.label("categoria_nombre"),
                 InscripcionModel.estado
             )
             .join(EstudianteModel, InscripcionModel.id_estudiante == EstudianteModel.id_estudiante)
