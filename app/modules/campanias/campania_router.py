@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.modules.campanias.campania_schema import CampaniaCreateDTO, CampaniaUpdateDTO, CampaniaResponseDTO, EstadoUpdateDTO
 from app.modules.campanias.campania_service import CampaniaService
 from app.core.responses import ResponseBase, PaginatedResponse, PaginationMeta
+from app.core.dependencies import get_current_admin
 
 router = APIRouter(prefix="/campanias", tags=["Campañas"])
 
@@ -24,7 +25,8 @@ def listar_campanias(
     inicio_end: Optional[datetime] = None,
     fin_start: Optional[datetime] = None,
     fin_end: Optional[datetime] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = CampaniaService(db)
     items, total = service.listar_campanias(
@@ -45,31 +47,31 @@ def listar_campanias(
     )
 
 @router.get("/{id}", response_model=ResponseBase[CampaniaResponseDTO])
-def obtener_campania(id: int, db: Session = Depends(get_db)):
+def obtener_campania(id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CampaniaService(db)
     campania = service.obtener_por_id(id)
     return ResponseBase(success=True, message="Campaña encontrada", data=campania)
 
 @router.post("/", response_model=ResponseBase[CampaniaResponseDTO])
-def crear_campania(data: CampaniaCreateDTO, db: Session = Depends(get_db)):
+def crear_campania(data: CampaniaCreateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CampaniaService(db)
-    campania = service.crear_campania(data)
+    campania = service.crear_campania(data, current_admin_id)
     return ResponseBase(success=True, message="Campaña creada en borrador", data=campania)
 
 @router.put("/{id}", response_model=ResponseBase[CampaniaResponseDTO])
-def actualizar_campania(id: int, data: CampaniaUpdateDTO, db: Session = Depends(get_db)):
+def actualizar_campania(id: int, data: CampaniaUpdateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CampaniaService(db)
-    campania = service.actualizar_campania(id, data)
+    campania = service.actualizar_campania(id, data, current_admin_id)
     return ResponseBase(success=True, message="Campaña actualizada", data=campania)
 
 @router.patch("/{id}/estado", response_model=ResponseBase[CampaniaResponseDTO])
-def cambiar_estado(id: int, data: EstadoUpdateDTO, db: Session = Depends(get_db)):
+def cambiar_estado(id: int, data: EstadoUpdateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CampaniaService(db)
-    campania = service.cambiar_estado(id, data.estado)
+    campania = service.cambiar_estado(id, data.estado, current_admin_id)
     return ResponseBase(success=True, message=f"Estado cambiado a {data.estado}", data=campania)
 
 @router.delete("/{id}")
-def eliminar_campania(id: int, db: Session = Depends(get_db)):
+def eliminar_campania(id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CampaniaService(db)
-    service.eliminar_campania(id)
+    service.eliminar_campania(id, current_admin_id)
     return ResponseBase(success=True, message="Campaña eliminada permanentemente", data=None)

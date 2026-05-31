@@ -4,11 +4,14 @@ from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.modules.campanias.campania_model import CampaniaEmail, EstadoCampania, CampaniaDestinatario
 from app.modules.campanias.campania_schema import CampaniaCreateDTO, CampaniaUpdateDTO
 from app.modules.campanias.campania_repository import CampaniaRepository
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 class CampaniaService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = CampaniaRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     def listar_campanias(self, page: int, limit: int, **filters):
         skip = (page - 1) * limit
@@ -21,7 +24,7 @@ class CampaniaService:
             raise NotFoundError("Campaña no encontrada")
         return campania
 
-    def crear_campania(self, data: CampaniaCreateDTO) -> CampaniaEmail:
+    def crear_campania(self, data: CampaniaCreateDTO, current_admin_id: int) -> CampaniaEmail:
         dict_enlaces = [e.model_dump() for e in data.enlaces] if data.enlaces else []
         nueva = CampaniaEmail(
             nombre=data.nombre,
@@ -38,10 +41,18 @@ class CampaniaService:
 
         if data.destinatarios_ids:
             self._gestionar_destinatarios(nueva.id, agregar=data.destinatarios_ids)
-            
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.CREAR,
+            modulo=TipoModulo.CAMPANIA,
+            descripcion=f"Campaña creada {nueva.nombre} de asunto {nueva.asunto}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
+        
         return nueva
 
-    def actualizar_campania(self, id_campania: int, data: CampaniaUpdateDTO) -> CampaniaEmail:
+    def actualizar_campania(self, id_campania: int, data: CampaniaUpdateDTO, current_admin_id: int) -> CampaniaEmail:
         campania = self.obtener_por_id(id_campania)
         
         if campania.estado != EstadoCampania.BORRADOR:
@@ -59,9 +70,16 @@ class CampaniaService:
 
         self.db.commit()
         self.db.refresh(campania)
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ACTUALIZAR,
+            modulo=TipoModulo.CAMPANIA,
+            descripcion=f"Campaña actualizada {campania.nombre} de asunto {campania.asunto}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return campania
 
-    def cambiar_estado(self, id_campania: int, nuevo_estado: EstadoCampania):
+    def cambiar_estado(self, id_campania: int, nuevo_estado: EstadoCampania, current_admin_id: int):
         campania = self.obtener_por_id(id_campania)
 
         if nuevo_estado == EstadoCampania.PROGRAMADA:
@@ -81,11 +99,27 @@ class CampaniaService:
         campania.estado = nuevo_estado
         self.db.commit()
         self.db.refresh(campania)
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ACTUALIZAR,
+            modulo=TipoModulo.CAMPANIA,
+            descripcion=f"Campaña actualizada {campania.nombre} de asunto {campania.asunto}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
+        
         return campania
 
-    def eliminar_campania(self, id_campania: int):
+    def eliminar_campania(self, id_campania: int, current_admin_id: int):
         campania = self.obtener_por_id(id_campania)
         self.repo.delete(id_campania)
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ELIMINAR,
+            modulo=TipoModulo.CAMPANIA,
+            descripcion=f"Campaña eliminada {campania.nombre} de asunto {campania.asunto}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return campania
 
     def _gestionar_destinatarios(self, id_campania: int, agregar: list = None, eliminar: list = None):
