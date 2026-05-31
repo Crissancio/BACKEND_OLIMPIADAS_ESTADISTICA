@@ -38,25 +38,18 @@ class ConvocatoriaRepository:
         items = query.offset(skip).limit(limit).all()
         return items, total
 
-    def get_publicada(self, exclude_id: Optional[int] = None):
-        query = self.db.query(ConvocatoriaModel).filter(
-            ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA
+    def get_convocatoria_activa(self) -> Optional[ConvocatoriaModel]:
+        hoy = date.today()
+        return (
+            self.db.query(ConvocatoriaModel)
+            .filter(
+                ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
+                ConvocatoriaModel.inicio_olimpiadas <= hoy,
+                ConvocatoriaModel.fin_olimpiadas >= hoy
+            )
+            .first()
         )
-        if exclude_id is not None:
-            query = query.filter(ConvocatoriaModel.id_convocatoria != exclude_id)
-        return query.first()
-    
-    def check_overlap_fechas(self, inicio: date, fin: date, exclude_id: Optional[int] = None):
-        query = self.db.query(ConvocatoriaModel).filter(
-            ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
-            ConvocatoriaModel.inicio_olimpiadas <= fin,
-            ConvocatoriaModel.fin_olimpiadas >= inicio
-        )
-        if exclude_id:
-            query = query.filter(ConvocatoriaModel.id_convocatoria != exclude_id)
         
-        return query.first() is not None
-
     def create(self, convocatoria: ConvocatoriaModel):
         self.db.add(convocatoria)
         self.db.commit()
@@ -71,3 +64,51 @@ class ConvocatoriaRepository:
     def delete(self, convocatoria: ConvocatoriaModel):
         self.db.delete(convocatoria)
         self.db.commit()
+
+    def check_overlap_fechas_global(
+        self, inicio: date, fin: date, exclude_id: Optional[int] = None
+    ) -> bool:
+        query = self.db.query(ConvocatoriaModel).filter(
+            ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
+            ConvocatoriaModel.inicio_olimpiadas <= fin,
+            ConvocatoriaModel.fin_olimpiadas >= inicio
+        )
+        if exclude_id is not None:
+            query = query.filter(ConvocatoriaModel.id_convocatoria != exclude_id)
+        return query.first() is not None
+
+    def get_convocatoria_principal(self) -> Optional[ConvocatoriaModel]:
+        hoy = date.today()
+        activa = (
+            self.db.query(ConvocatoriaModel)
+            .filter(
+                ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
+                ConvocatoriaModel.inicio_olimpiadas <= hoy,
+                ConvocatoriaModel.fin_olimpiadas >= hoy,
+            )
+            .first()
+        )
+        if activa:
+            return activa
+        proxima = (
+            self.db.query(ConvocatoriaModel)
+            .filter(
+                ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
+                ConvocatoriaModel.inicio_olimpiadas > hoy,
+            )
+            .order_by(ConvocatoriaModel.inicio_olimpiadas.asc())
+            .first()
+        )
+        if proxima:
+            return proxima
+
+        ultima = (
+            self.db.query(ConvocatoriaModel)
+            .filter(
+                ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
+                ConvocatoriaModel.fin_olimpiadas < hoy,
+            )
+            .order_by(ConvocatoriaModel.fin_olimpiadas.desc())
+            .first()
+        )
+        return ultima

@@ -91,7 +91,16 @@ class ConvocatoriaService:
         
         data.nombre_convocatoria = data.nombre_convocatoria.upper()
         self._validate_fechas_futuras(data.model_dump())
-        self._validate_fechas_logica(data.inicio_olimpiadas, data.fin_olimpiadas, data.fecha_inicio_inscripcion, data.fecha_fin_inscripcion)
+        self._validate_fechas_logica(data.inicio_olimpiadas, data.fin_olimpiadas,
+                                    data.fecha_inicio_inscripcion, data.fecha_fin_inscripcion)
+
+        if data.inicio_olimpiadas and data.fin_olimpiadas:
+            if self.repository.check_overlap_fechas_global(
+                data.inicio_olimpiadas, data.fin_olimpiadas
+            ):
+                raise BusinessRuleError(
+                    "Las fechas de la olimpiada se solapan con otra convocatoria PUBLICADA."
+                )
 
         conv_dict = data.model_dump()
         conv_dict["estado"] = EstadoConvocatoria.BORRADOR
@@ -106,7 +115,7 @@ class ConvocatoriaService:
 
         if data.nombre_convocatoria:
             data.nombre_convocatoria = data.nombre_convocatoria.upper()
-        
+
         updates = data.model_dump(exclude_unset=True)
         if not updates:
             return self._map_response(convocatoria)
@@ -117,13 +126,15 @@ class ConvocatoriaService:
         if convocatoria.estado == EstadoConvocatoria.CANCELADA:
             raise BusinessRuleError("No se puede editar una convocatoria CANCELADA.")
         elif convocatoria.estado == EstadoConvocatoria.BORRADOR:
-            allowed_fields = {"nombre_convocatoria", "gestion", "descripcion", "inicio_olimpiadas", "fin_olimpiadas", "fecha_inicio_inscripcion", "fecha_fin_inscripcion", "monto_inscripcion"}
+            allowed_fields = {"nombre_convocatoria", "gestion", "descripcion", "inicio_olimpiadas",
+                            "fin_olimpiadas", "fecha_inicio_inscripcion", "fecha_fin_inscripcion", "monto_inscripcion"}
         elif convocatoria.estado == EstadoConvocatoria.OCULTA:
             allowed_fields = {"nombre_convocatoria", "descripcion"}
         elif convocatoria.estado == EstadoConvocatoria.PUBLICADA:
             allowed_fields = {"nombre_convocatoria", "descripcion"}
             if estado_temp == EstadoTemporal.PROXIMA:
-                allowed_fields.update({"inicio_olimpiadas", "fin_olimpiadas", "fecha_inicio_inscripcion", "fecha_fin_inscripcion"})
+                allowed_fields.update({"inicio_olimpiadas", "fin_olimpiadas",
+                                    "fecha_inicio_inscripcion", "fecha_fin_inscripcion"})
             elif estado_temp == EstadoTemporal.INSCRIPCIONES_PROXIMAS:
                 allowed_fields.update({"fecha_inicio_inscripcion", "fecha_fin_inscripcion", "fin_olimpiadas"})
             elif estado_temp in [EstadoTemporal.INSCRIPCION_EN_CURSO, EstadoTemporal.EN_CURSO]:
@@ -144,9 +155,11 @@ class ConvocatoriaService:
 
         self._validate_fechas_logica(new_inicio_olimp, new_fin_olimp, new_inicio_insc, new_fin_insc)
 
-        if convocatoria.estado == EstadoConvocatoria.PUBLICADA and (new_inicio_olimp != convocatoria.inicio_olimpiadas or new_fin_olimp != convocatoria.fin_olimpiadas):
-            if self.repository.check_overlap_fechas(new_inicio_olimp, new_fin_olimp, exclude_id=convocatoria.id_convocatoria):
-                raise BusinessRuleError("Las nuevas fechas se superponen con otra convocatoria PUBLICADA.")
+        if new_inicio_olimp != convocatoria.inicio_olimpiadas or new_fin_olimp != convocatoria.fin_olimpiadas:
+            if self.repository.check_overlap_fechas_global(
+                new_inicio_olimp, new_fin_olimp, exclude_id=convocatoria.id_convocatoria
+            ):
+                raise BusinessRuleError("Las nuevas fechas se solapan con otra convocatoria PUBLICADA.")
 
         for key, value in updates.items():
             setattr(convocatoria, key, value)
@@ -176,12 +189,14 @@ class ConvocatoriaService:
                         convocatoria.monto_inscripcion]):
                 raise BusinessRuleError("Para publicar, todos los campos de fechas y monto deben estar completos.")
             
-            existente = self.repository.get_publicada(exclude_id=convocatoria.id_convocatoria)
-            if existente:
-                raise BusinessRuleError("Ya existe otra convocatoria en estado PUBLICADA. Solo puede haber una a la vez.")
-            
+            if self.repository.check_overlap_fechas_global(
+                convocatoria.inicio_olimpiadas,
+                convocatoria.fin_olimpiadas,
+                exclude_id=convocatoria.id_convocatoria
+            ):
+                raise BusinessRuleError("Las fechas se solapan con otra convocatoria PUBLICADA.")
             self._validar_materiales_principales(convocatoria.id_convocatoria)
-
+        
         if nuevo_estado in [EstadoConvocatoria.CANCELADA, EstadoConvocatoria.OCULTA]:
             if estado_actual != EstadoConvocatoria.PUBLICADA:
                 raise BusinessRuleError(f"Solo se puede pasar a {nuevo_estado.value} desde PUBLICADA.")
@@ -212,4 +227,15 @@ class ConvocatoriaService:
             raise BusinessRuleError(
                 f"Faltan los siguientes materiales principales (o no están en estado PUBLICO): {', '.join(faltantes)}"
             )
-            
+
+    def get_convocatoria_principal(self):
+        convocatoria = self.repository.get_convocatoria_principal()
+        if not convocatoria:
+            raise NotFoundError("No hay ninguna convocatoria principal en este momento")
+        return self._map_response(convocatoria)
+     
+    def get_convocatoria_activa(self):
+        convocatoria = self.repository.get_convocatoria_activa()
+        if not convocatoria:
+            raise NotFoundError("No hay ninguna convocatoria activa en este momento")
+        return self._map_response(convocatoria)
