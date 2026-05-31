@@ -23,13 +23,13 @@ class ContactoMinimoLogDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class CampaniaMinimaLogDTO(BaseModel):
-    id: int
+    id_campania_email: int
     nombre: str
     
     model_config = ConfigDict(from_attributes=True)
 
 class EmailLogResponseDTO(BaseModel):
-    id: int
+    id_email_log: int
     destinatario: str
     asunto: str
     tipo: TipoEmail

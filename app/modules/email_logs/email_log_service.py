@@ -44,7 +44,7 @@ class EmailLogService:
         self.db.refresh(log)
         self._auditar(
             current_admin_id,
-            f"Email log {log.id} reintentado para {log.destinatario}",
+            f"Email log {log.id_email_log} reintentado para {log.destinatario}",
         )
         return log
 

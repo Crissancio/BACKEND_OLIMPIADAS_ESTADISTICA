@@ -18,10 +18,10 @@ class EmailSenderService:
             else_=2
         )
 
-        pendientes = self.db.query(EmailLog).outerjoin(CampaniaEmail, EmailLog.id_campania == CampaniaEmail.id)\
+        pendientes = self.db.query(EmailLog).outerjoin(CampaniaEmail, EmailLog.id_campania == CampaniaEmail.id_campania_email)\
             .filter(
                 EmailLog.estado == EstadoEmail.PENDIENTE,
-                (CampaniaEmail.id == None) | (CampaniaEmail.estado == EstadoCampania.EN_PROCESO)
+                (CampaniaEmail.id_campania_email == None) | (CampaniaEmail.estado == EstadoCampania.EN_PROCESO)
             )\
             .order_by(prioridad.asc(), EmailLog.fecha_creacion.asc())\
             .limit(settings.mailing_batch_size).all()

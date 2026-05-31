@@ -1,18 +1,19 @@
-from sqlalchemy import Column, Date, ForeignKey, Integer, String
+from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.modules.categorias.categoria_model import NivelEducativo
 
 class EstudianteModel(Base):
     __tablename__ = "estudiante"
 
     id_estudiante = Column(Integer, ForeignKey("persona.id_persona"), primary_key=True)
     id_colegio = Column(Integer, ForeignKey("colegio.id_colegio"), nullable=False, index=True)
-    carnet_identidad = Column(String(50), nullable=False, unique=True)
+    carnet_identidad = Column(String(15), nullable=False, unique=True)
     curso = Column(Integer, nullable=False)
-    nivel = Column(String(20), nullable=False)
+    nivel = Column(Enum(NivelEducativo, name="nivel_educativo"), nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
     rude = Column(String(50), nullable=True)
-    telefono = Column(Integer, nullable=True)
+    telefono = Column(String(8), nullable=True)
     correo = Column(String(255), nullable=True)
 
     persona = relationship("PersonaModel", lazy="joined")

@@ -26,13 +26,13 @@ class ContactoRepository:
         if estado:
             query = query.filter(ContactoModel.estado == estado)
             
-        if creacion_start and creacion_end: query = query.filter(ContactoModel.creado_en.between(creacion_start, creacion_end))
-        if cambio_start and cambio_end: query = query.filter(ContactoModel.cambio_en.between(cambio_start, cambio_end))
+        if creacion_start and creacion_end: query = query.filter(ContactoModel.fecha_creacion.between(creacion_start, creacion_end))
+        if cambio_start and cambio_end: query = query.filter(ContactoModel.fecha_actualizacion.between(cambio_start, cambio_end))
 
         order_rule = case(
-            (ContactoModel.estado == EstadoContacto.PENDIENTE, ContactoModel.creado_en),
-            (ContactoModel.estado == EstadoContacto.LEIDO, ContactoModel.cambio_en),
-            (ContactoModel.estado == EstadoContacto.RESPONDIDO, ContactoModel.cambio_en)
+            (ContactoModel.estado == EstadoContacto.PENDIENTE, ContactoModel.fecha_creacion),
+            (ContactoModel.estado == EstadoContacto.LEIDO, ContactoModel.fecha_actualizacion),
+            (ContactoModel.estado == EstadoContacto.RESPONDIDO, ContactoModel.fecha_actualizacion)
         ).desc()
 
         total = query.count()
@@ -46,13 +46,13 @@ class ContactoRepository:
         query = self.db.query(ContactoModel).join(EmailLog, ContactoModel.id_contacto == EmailLog.id_contacto)\
             .filter(ContactoModel.estado == EstadoContacto.RESPONDIDO)
 
-        if cambio_start and cambio_end: query = query.filter(ContactoModel.cambio_en.between(cambio_start, cambio_end))
+        if cambio_start and cambio_end: query = query.filter(ContactoModel.fecha_actualizacion.between(cambio_start, cambio_end))
         if estado_email: query = query.filter(EmailLog.estado == estado_email)
 
         query = query.options(selectinload(ContactoModel.email_logs))
 
         total = query.count()
-        items = query.order_by(ContactoModel.cambio_en.desc()).offset(skip).limit(limit).all()
+        items = query.order_by(ContactoModel.fecha_actualizacion.desc()).offset(skip).limit(limit).all()
         return items, total
 
     def create(self, contacto: ContactoModel):

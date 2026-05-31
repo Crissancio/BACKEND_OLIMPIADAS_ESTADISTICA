@@ -36,7 +36,7 @@ class EstudianteRepository:
         limit: int,
         search: Optional[str] = None,
         carnet: Optional[str] = None,
-        telefono: Optional[int] = None,
+        telefono: Optional[str] = None,
         rude: Optional[str] = None,
         mes_nacimiento: Optional[int] = None,
         anio_nacimiento: Optional[int] = None,

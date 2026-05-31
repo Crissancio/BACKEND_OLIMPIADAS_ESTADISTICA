@@ -11,7 +11,7 @@ class EstudianteFormularioDTO(BaseModel):
     curso: int
     nivel: str
     rude: Optional[str] = None
-    telefono: Optional[int] = None
+    telefono: Optional[str] = None
     correo: Optional[str] = None
 
 class InscripcionFormularioDTO(BaseModel):
@@ -41,7 +41,7 @@ class EstudianteBusquedaResponseDTO(BaseModel):
     curso: Optional[int] = None
     nivel: Optional[str] = None
     rude: Optional[str] = None
-    telefono: Optional[int] = None
+    telefono: Optional[str] = None
     correo: Optional[str] = None
     id_colegio: Optional[int] = None
     ya_inscrito: bool = False

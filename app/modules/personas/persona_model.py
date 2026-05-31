@@ -1,21 +1,36 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Text
+import enum
+
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+
+
+class EstadoPersona(str, enum.Enum):
+    ACTIVO = "ACTIVO"
+    INACTIVO = "INACTIVO"
+
+
+class TipoColaborador(str, enum.Enum):
+    PERSONAL_ACADEMICO = "PERSONAL ACADEMICO"
+    ADMINISTRATIVO = "ADMINISTRATIVO"
+    COLABORADOR = "COLABORADOR"
+
+
 class PersonaModel(Base):
     __tablename__ = "persona"
     id_persona = Column(Integer, primary_key=True, index=True)
     nombres = Column(String(255), nullable=False)
     paterno = Column(String(255), nullable=False)
     materno = Column(String(255), nullable=True)
-    estado = Column(String(20), nullable=False, default="ACTIVO")
+    estado = Column(Enum(EstadoPersona, name="estado_persona"), nullable=False, default=EstadoPersona.ACTIVO)
 
 class DirectorModel(Base):
     __tablename__ = "director"
 
     id_director = Column(Integer, ForeignKey("persona.id_persona"), primary_key=True)
     id_colegio = Column(Integer, ForeignKey("colegio.id_colegio"), nullable=True, index=True)
-    telefono_1 = Column(String(50), nullable=True)
-    telefono_2 = Column(String(50), nullable=True)
+    telefono_1 = Column(String(8), nullable=True)
+    telefono_2 = Column(String(8), nullable=True)
     
     colegio = relationship("ColegioModel", back_populates="directores")
 
@@ -44,7 +59,7 @@ class ColaboradorModel(Base):
     perfil = Column(String(255), nullable=True)
     presentacion = Column(Text, nullable=True)
     rol = Column(String(100), nullable=False)
-    tipo = Column(String(30), nullable=False)
+    tipo = Column(Enum(TipoColaborador, name="tipo_colaborador"), nullable=False)
     correo = Column(String(255), nullable=False)
 
     persona = relationship("PersonaModel")

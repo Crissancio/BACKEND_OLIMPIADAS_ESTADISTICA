@@ -29,4 +29,4 @@ class ResultadoModel(Base):
 
     categoria = relationship("CategoriaModel")
     fase_prueba = relationship("FasePruebaModel")
-    inscripcion = relationship("InscripcionModel")
+    inscripcion = relationship("InscripcionModel", back_populates="resultado")

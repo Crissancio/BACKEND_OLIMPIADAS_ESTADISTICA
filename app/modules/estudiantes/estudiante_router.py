@@ -26,7 +26,7 @@ def listar_estudiantes(
     limit: int = 10,
     search: Optional[str] = Query(None),
     carnet: Optional[str] = Query(None),
-    telefono: Optional[int] = Query(None),
+    telefono: Optional[str] = Query(None),
     rude: Optional[str] = Query(None),
     mes_nacimiento: Optional[int] = Query(None),
     anio_nacimiento: Optional[int] = Query(None),

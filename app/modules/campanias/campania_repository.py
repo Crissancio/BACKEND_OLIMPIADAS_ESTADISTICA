@@ -36,7 +36,7 @@ class CampaniaRepository:
         return items, total
 
     def get_by_id(self, id_campania: int) -> CampaniaEmail:
-        query = self.db.query(CampaniaEmail).filter(CampaniaEmail.id == id_campania)
+        query = self.db.query(CampaniaEmail).filter(CampaniaEmail.id_campania_email == id_campania)
         query = self._apply_eager_loading(query)
         return query.first()
 

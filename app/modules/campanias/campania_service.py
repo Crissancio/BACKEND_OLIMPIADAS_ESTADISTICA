@@ -40,7 +40,7 @@ class CampaniaService:
         self.db.refresh(nueva)
 
         if data.destinatarios_ids:
-            self._gestionar_destinatarios(nueva.id, agregar=data.destinatarios_ids)
+            self._gestionar_destinatarios(nueva.id_campania_email, agregar=data.destinatarios_ids)
         
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
@@ -66,7 +66,7 @@ class CampaniaService:
         if data.fecha_programada: campania.fecha_programada = data.fecha_programada
 
         if data.agregar_destinatarios or data.eliminar_destinatarios:
-            self._gestionar_destinatarios(campania.id, data.agregar_destinatarios, data.eliminar_destinatarios)
+            self._gestionar_destinatarios(campania.id_campania_email, data.agregar_destinatarios, data.eliminar_destinatarios)
 
         self.db.commit()
         self.db.refresh(campania)
@@ -85,7 +85,7 @@ class CampaniaService:
         if nuevo_estado == EstadoCampania.PROGRAMADA:
             if campania.estado not in (EstadoCampania.BORRADOR, EstadoCampania.CANCELADA):
                 raise BusinessRuleError("Solo se puede programar desde BORRADOR o CANCELADA")
-            total_dest = self.db.query(CampaniaDestinatario).filter_by(id_campania=id_campania).count()
+            total_dest = self.db.query(CampaniaDestinatario).filter_by(id_campania_email=id_campania).count()
             if total_dest == 0:
                 raise BusinessRuleError("No se puede programar una campaña sin destinatarios")
                 
@@ -125,19 +125,19 @@ class CampaniaService:
     def _gestionar_destinatarios(self, id_campania: int, agregar: list = None, eliminar: list = None):
         if eliminar:
             self.db.query(CampaniaDestinatario).filter(
-                CampaniaDestinatario.id_campania == id_campania,
+                CampaniaDestinatario.id_campania_email == id_campania,
                 CampaniaDestinatario.id_estudiante.in_(eliminar)
             ).delete(synchronize_session=False)
         
         if agregar:
             existentes = self.db.query(CampaniaDestinatario.id_estudiante).filter(
-                CampaniaDestinatario.id_campania == id_campania,
+                CampaniaDestinatario.id_campania_email == id_campania,
                 CampaniaDestinatario.id_estudiante.in_(agregar)
             ).all()
             existentes_ids = [e[0] for e in existentes]
             
             nuevos = [
-                CampaniaDestinatario(id_campania=id_campania, id_estudiante=est_id) 
+                CampaniaDestinatario(id_campania_email=id_campania, id_estudiante=est_id)
                 for est_id in agregar if est_id not in existentes_ids
             ]
             if nuevos:

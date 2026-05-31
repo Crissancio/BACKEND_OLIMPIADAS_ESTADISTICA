@@ -17,7 +17,7 @@ class EstudianteDestinatarioDTO(BaseModel):
     paterno: str
     materno: Optional[str] = None
     correo: Optional[str] = None
-    telefono: Optional[int] = None
+    telefono: Optional[str] = None
     colegio: Optional[ColegioMinimoDTO] = None
     
     model_config = ConfigDict(from_attributes=True)
@@ -49,7 +49,7 @@ class EstadoUpdateDTO(BaseModel):
     estado: EstadoCampania
 
 class CampaniaResponseDTO(BaseModel):
-    id: int
+    id_campania_email: int
     nombre: str
     asunto: str
     contenido_mensaje: str

@@ -18,22 +18,22 @@ class EstadoEmail(str, enum.Enum):
 class EmailLog(Base):
     __tablename__ = "email_log"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id_email_log = Column(Integer, primary_key=True, index=True)
     destinatario = Column(String(255), nullable=False)
     asunto = Column(String(255), nullable=False)
     contenido_html = Column(Text, nullable=False)
-    tipo = Column(Enum(TipoEmail), nullable=False)
-    estado = Column(Enum(EstadoEmail), nullable=False, default=EstadoEmail.PENDIENTE)
+    tipo = Column(Enum(TipoEmail, name="tipo_email"), nullable=False)
+    estado = Column(Enum(EstadoEmail, name="estado_email"), nullable=False, default=EstadoEmail.PENDIENTE)
     error = Column(Text, nullable=True)
     intentos = Column(Integer, nullable=False, default=0)
     ultimo_intento = Column(DateTime, nullable=True)
     fecha_creacion = Column(DateTime, nullable=False, default=func.now())
     fecha_envio = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    fecha_actualizacion = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
     
     id_estudiante = Column(Integer, ForeignKey("estudiante.id_estudiante", ondelete="SET NULL"), nullable=True)
     id_contacto = Column(Integer, ForeignKey("contacto.id_contacto", ondelete="SET NULL"), nullable=True)
-    id_campania = Column(Integer, ForeignKey("campania_email.id", ondelete="SET NULL"), nullable=True)
+    id_campania = Column(Integer, ForeignKey("campania_email.id_campania_email", ondelete="SET NULL"), nullable=True)
 
     campania = relationship("CampaniaEmail", back_populates="email_logs")
     estudiante = relationship("EstudianteModel", back_populates="email_logs", foreign_keys=[id_estudiante])

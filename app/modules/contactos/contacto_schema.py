@@ -21,8 +21,8 @@ class ContactoResponseDTO(BaseModel):
     asunto: str
     mensaje: str
     estado: EstadoContacto
-    creado_en: datetime
-    cambio_en: datetime
+    fecha_creacion: datetime
+    fecha_actualizacion: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

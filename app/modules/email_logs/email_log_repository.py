@@ -44,6 +44,6 @@ class EmailLogRepository:
         return items, total
 
     def get_by_id(self, id_log: int) -> EmailLog:
-        query = self.db.query(EmailLog).filter(EmailLog.id == id_log)
+        query = self.db.query(EmailLog).filter(EmailLog.id_email_log == id_log)
         query = self._apply_eager_loading(query)
         return query.first()

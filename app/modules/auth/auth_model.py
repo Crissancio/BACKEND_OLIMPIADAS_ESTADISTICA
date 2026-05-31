@@ -1,6 +1,13 @@
-from sqlalchemy import Column, Integer, String, text
+import enum
+
+from sqlalchemy import Column, Enum, Integer, String
 
 from app.db.database import Base
+
+
+class EstadoAdministrador(str, enum.Enum):
+    ACTIVO = "ACTIVO"
+    INACTIVO = "INACTIVO"
 
 
 class AdministradorModel(Base):
@@ -10,4 +17,4 @@ class AdministradorModel(Base):
     nombre = Column(String(255), nullable=False)
     correo = Column(String(255), nullable=False, unique=True, index=True)
     contrasena = Column(String(255), nullable=False)
-    estado = Column(String(20), nullable=False, default="ACTIVO", server_default=text("'ACTIVO'"))
+    estado = Column(Enum(EstadoAdministrador, name="estado_administrador"), nullable=False, default=EstadoAdministrador.ACTIVO)

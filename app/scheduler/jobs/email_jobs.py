@@ -33,11 +33,11 @@ def process_scheduled_campaigns():
             logger.info(f"¡Se encontraron {len(campanias)} campañas listas para procesar!")
 
         for camp in campanias:
-            logger.info(f"Procesando campaña ID: {camp.id} - {camp.nombre}")
+            logger.info(f"Procesando campaña ID: {camp.id_campania_email} - {camp.nombre}")
             camp.estado = EstadoCampania.EN_PROCESO
             camp.fecha_inicio = ahora
             
-            destinatarios = db.query(CampaniaDestinatario).filter_by(id_campania=camp.id).all()
+            destinatarios = db.query(CampaniaDestinatario).filter_by(id_campania_email=camp.id_campania_email).all()
             
             for dest in destinatarios:
                 estudiante = dest.estudiante
@@ -60,12 +60,12 @@ def process_scheduled_campaigns():
                     tipo=TipoEmail.MASIVO_INSCRIPCION,
                     estado=EstadoEmail.PENDIENTE,
                     id_estudiante=dest.id_estudiante,
-                    id_campania=camp.id
+                    id_campania=camp.id_campania_email
                 )
                 db.add(log)
             
             db.commit()
-            logger.info(f"Campaña {camp.id} pasada a EN_PROCESO. Logs generados.")
+            logger.info(f"Campaña {camp.id_campania_email} pasada a EN_PROCESO. Logs generados.")
             
     except Exception as e:
         db.rollback()
@@ -92,14 +92,14 @@ def finalize_campaigns():
         
         for camp in en_proceso:
             pendientes = db.query(EmailLog).filter(
-                EmailLog.id_campania == camp.id,
+                EmailLog.id_campania == camp.id_campania_email,
                 EmailLog.estado.in_([EstadoEmail.PENDIENTE, EstadoEmail.EN_PROCESO])
             ).count()
             
             if pendientes == 0:
                 camp.estado = EstadoCampania.FINALIZADA
                 camp.fecha_fin = get_local_now()
-                logger.info(f"Campaña ID {camp.id} ha sido FINALIZADA exitosamente.")
+                logger.info(f"Campaña ID {camp.id_campania_email} ha sido FINALIZADA exitosamente.")
         
         db.commit()
     except Exception as e:

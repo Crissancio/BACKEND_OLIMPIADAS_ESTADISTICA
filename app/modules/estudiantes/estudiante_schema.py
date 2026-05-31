@@ -15,7 +15,7 @@ class EstudianteBaseDTO(BaseModel):
     nivel: str
     fecha_nacimiento: date
     rude: Optional[str] = None
-    telefono: Optional[int] = None
+    telefono: Optional[str] = None
     correo: Optional[str] = None
 
 class EstudianteCreateDTO(EstudianteBaseDTO):
@@ -31,7 +31,7 @@ class EstudianteUpdateDTO(BaseModel):
     curso: Optional[int] = None
     nivel: Optional[str] = None
     rude: Optional[str] = None
-    telefono: Optional[int] = None
+    telefono: Optional[str] = None
     correo: Optional[str] = None
 
 class EstudianteEstadoUpdateDTO(BaseModel):

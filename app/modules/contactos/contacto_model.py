@@ -17,8 +17,8 @@ class ContactoModel(Base):
     correo_electronico = Column(String(150), nullable=False, index=True)
     asunto = Column(String(200), nullable=False)
     mensaje = Column(Text, nullable=False)
-    creado_en = Column(DateTime, nullable=False, server_default=func.now(), index=True)
-    cambio_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    estado = Column(Enum(EstadoContacto), nullable=False, default=EstadoContacto.PENDIENTE)
+    fecha_creacion = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+    fecha_actualizacion = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    estado = Column(Enum(EstadoContacto, name="estado_contacto"), nullable=False, default=EstadoContacto.PENDIENTE)
 
     email_logs = relationship("EmailLog", back_populates="contacto", cascade="all, delete-orphan", foreign_keys="[EmailLog.id_contacto]")
