@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from sqlalchemy import func
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, case
@@ -154,3 +155,23 @@ class InscripcionRepository:
             .filter(InscripcionModel.id_inscripcion.in_(ids))
             .all()
         )
+    
+    def get_estadisticas_inscripcion(self, convocatoria_id: int) -> dict:
+        resultados = (
+            self.db.query(
+                func.count(InscripcionModel.id_inscripcion).label("total"),
+                func.sum(
+                    case((InscripcionModel.estado == "APROBADO", 1), else_=0)
+                ).label("aprobados"),
+                func.sum(
+                    case((InscripcionModel.estado == "PENDIENTE", 1), else_=0)
+                ).label("pendientes"),
+            )
+            .filter(InscripcionModel.id_convocatoria == convocatoria_id)
+            .first()
+        )
+        return {
+            "total": resultados.total or 0,
+            "aprobados": resultados.aprobados or 0,
+            "pendientes": resultados.pendientes or 0,
+        }
