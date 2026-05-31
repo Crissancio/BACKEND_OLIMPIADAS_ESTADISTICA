@@ -63,3 +63,15 @@ class AdminDashboardResponseDTO(BaseModel):
     convocatoria_activa: Optional[DashboardConvocatoriaActivaDTO]
     inscripciones: DashboardEstadisticasInscripcionDTO
     avisos_visibles: int
+
+class ActividadRecienteDTO(BaseModel):
+    id_registro: int
+    tipo_registro: str
+    fecha: datetime
+    descripcion: Optional[str] = None
+    accion: Optional[str] = None
+    modulo: Optional[str] = None
+    titulo: Optional[str] = None
+    tipo_actividad: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

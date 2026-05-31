@@ -109,3 +109,21 @@ class SistemaService:
             "inscripciones": stats,
             "avisos_visibles": avisos_visibles
         }
+        
+    def get_actividad_reciente(self, skip: int, limit: int):
+        items, total = self.repository.get_actividad_reciente(skip, limit)
+        
+        mapped_items = []
+        for row in items:
+            mapped_items.append({
+                "id_registro": row.id_registro,
+                "tipo_registro": row.tipo_registro,
+                "fecha": row.fecha,
+                "descripcion": row.descripcion,
+                "accion": row.accion.capitalize() if row.accion else None,
+                "modulo": row.modulo,
+                "titulo": row.titulo,
+                "tipo_actividad": row.tipo_actividad
+            })
+            
+        return mapped_items, total

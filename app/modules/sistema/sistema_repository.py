@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Tuple, List
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-
+from sqlalchemy import select, literal, null, String, union_all
 from app.modules.sistema.sistema_model import AuditoriaModel, ActividadSistemaModel, TipoAccion, TipoModulo
 from app.modules.auth.auth_model import AdministradorModel  # O la ruta exacta donde lo tengas
 
@@ -68,3 +68,33 @@ class SistemaRepository:
         self.db.commit()
         self.db.refresh(actividad)
         return actividad
+
+    def get_actividad_reciente(self, skip: int, limit: int):
+        q1 = select(
+            literal("AUDITORIA").label("tipo_registro"),
+            AuditoriaModel.id_auditoria.label("id_registro"),
+            AuditoriaModel.fecha.label("fecha"),
+            AuditoriaModel.descripcion.label("descripcion"),
+            AuditoriaModel.accion.cast(String).label("accion"),
+            AuditoriaModel.modulo.cast(String).label("modulo"),
+            null().cast(String).label("titulo"),
+            null().cast(String).label("tipo_actividad")
+        )
+        
+        q2 = select(
+            literal("ACTIVIDAD").label("tipo_registro"),
+            ActividadSistemaModel.id_actividad.label("id_registro"),
+            ActividadSistemaModel.fecha.label("fecha"),
+            null().cast(String).label("descripcion"),
+            null().cast(String).label("accion"),
+            null().cast(String).label("modulo"),
+            ActividadSistemaModel.titulo.label("titulo"),
+            ActividadSistemaModel.tipo.cast(String).label("tipo_actividad")
+        )
+        
+        unified = union_all(q1, q2).subquery()
+        query = self.db.query(unified)
+        total = query.count()
+        items = query.order_by(unified.c.fecha.desc()).offset(skip).limit(limit).all()
+        
+        return items, total

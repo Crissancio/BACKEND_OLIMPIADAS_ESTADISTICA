@@ -10,7 +10,8 @@ from app.modules.sistema.sistema_model import TipoAccion, TipoModulo
 from app.modules.sistema.sistema_schema import (
     AuditoriaResponseDTO,
     ActividadSistemaResponseDTO,
-    AdminDashboardResponseDTO
+    AdminDashboardResponseDTO,
+    ActividadRecienteDTO
 )
 from app.modules.sistema.sistema_service import SistemaService
 
@@ -83,3 +84,19 @@ def obtener_dashboard_admin(
     dashboard_data = service.get_admin_dashboard()
     
     return ResponseBase(data=dashboard_data, message="Información del dashboard cargada correctamente")
+
+@router.get("/actividad-reciente", response_model=PaginatedResponse[ActividadRecienteDTO])
+def obtener_actividad_reciente(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1),
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    service = SistemaService(db)
+    skip = (page - 1) * limit
+    items, total = service.get_actividad_reciente(skip, limit)
+    
+    meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
+    data = PaginatedData(items=items, meta=meta)
+    
+    return PaginatedResponse(data=data, message="Feed de actividad reciente obtenido correctamente")
