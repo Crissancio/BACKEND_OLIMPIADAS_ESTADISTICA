@@ -6,14 +6,18 @@ from urllib import parse
 from app.core.config import settings
 from app.core.exceptions import BusinessRuleError
 
-
-MAX_MATERIAL_FILE_SIZE = 25 * 1024 * 1024
+MAX_MATERIAL_FILE_SIZE = 40 * 1024 * 1024
 ALLOWED_MATERIAL_CONTENT_TYPES = {
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.ms-excel",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "image/jpeg",
+    "image/png",
+    "image/svg+xml"
 }
 
 
@@ -24,19 +28,18 @@ class SupabaseStorageClient:
         self.bucket = settings.supabase_bucket_materiales
         self.client = self._create_client()
 
-    def upload_material(self, content: bytes, filename: str, tipo_material: str, content_type: str | None) -> str:
+    def upload_material(self, content: bytes, filename: str, content_type: str | None) -> str:
         if not self.base_url or not self.service_role_key:
             raise BusinessRuleError("Supabase no esta configurado")
 
         if len(content) > MAX_MATERIAL_FILE_SIZE:
-            raise BusinessRuleError("El archivo supera el limite de 25 MB")
+            raise BusinessRuleError("El archivo supera el limite de 40 MB")
 
         detected_content_type = content_type or mimetypes.guess_type(filename)[0]
         if not self._is_allowed_content_type(detected_content_type):
             raise BusinessRuleError("Tipo de archivo no permitido")
 
-        safe_filename = f"{uuid.uuid4().hex}_{self._safe_filename(filename)}"
-        storage_path = f"{tipo_material}/{safe_filename}"
+        storage_path = parse.quote(filename)
 
         try:
             self.client.storage.from_(self.bucket).upload(
@@ -49,12 +52,27 @@ class SupabaseStorageClient:
             )
         except Exception as exc:
             detalle = str(exc) or "Error desconocido"
-            raise BusinessRuleError(
-                f"No se pudo subir el archivo a Supabase: {detalle}"
-            ) from exc
+            raise BusinessRuleError(f"No se pudo subir el archivo a Supabase: {detalle}") from exc
 
-        encoded_path = parse.quote(storage_path)
-        return f"{self.base_url}/storage/v1/object/public/{self.bucket}/{encoded_path}"
+        return f"{self.base_url}/storage/v1/object/public/{self.bucket}/{storage_path}"
+
+    def rename_file(self, old_url: str, new_filename: str) -> str:
+        try:
+            path_in_bucket = old_url.split(f"{self.bucket}/")[-1]
+            decoded_old_path = parse.unquote(path_in_bucket)
+            new_storage_path = parse.quote(new_filename)
+            self.client.storage.from_(self.bucket).move(decoded_old_path, new_storage_path)
+            return f"{self.base_url}/storage/v1/object/public/{self.bucket}/{new_storage_path}"
+        except Exception as exc:
+            raise BusinessRuleError(f"Error al renombrar archivo en Supabase: {str(exc)}")
+
+    def delete_file(self, file_url: str):
+        try:
+            path_in_bucket = file_url.split(f"{self.bucket}/")[-1]
+            decoded_path = parse.unquote(path_in_bucket)
+            self.client.storage.from_(self.bucket).remove([decoded_path])
+        except Exception:
+            pass
 
     def _create_client(self):
         try:
@@ -72,26 +90,4 @@ class SupabaseStorageClient:
     def _is_allowed_content_type(self, content_type: str | None) -> bool:
         if not content_type:
             return False
-        return content_type in ALLOWED_MATERIAL_CONTENT_TYPES or content_type.startswith("image/") or content_type.startswith("video/")
-
-    def _safe_filename(self, filename: str) -> str:
-        name = Path(filename).name.replace(" ", "_")
-        return name or "material"
-
-    def upload_file(self, content: bytes, filename: str, folder: str, content_type: str = None) -> str:
-        detected_type = content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
-        safe_filename = f"{uuid.uuid4().hex}_{filename.replace(' ', '_')}"
-        storage_path = f"{folder}/{safe_filename}"
-        
-        self.client.storage.from_(self.bucket).upload(
-            storage_path, content, {"content-type": detected_type, "upsert": "true"}
-        )
-        return f"{self.base_url}/storage/v1/object/public/{self.bucket}/{parse.quote(storage_path)}"
-
-    def delete_file(self, file_url: str):
-        try:
-            path_in_bucket = file_url.split(f"{self.bucket}/")[-1]
-            decoded_path = parse.unquote(path_in_bucket)
-            self.client.storage.from_(self.bucket).remove([decoded_path])
-        except Exception:
-            pass
+        return content_type in ALLOWED_MATERIAL_CONTENT_TYPES

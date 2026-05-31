@@ -1,18 +1,9 @@
 from datetime import datetime
-
-from sqlalchemy import delete, insert, update
+from typing import Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
-
-from app.modules.categorias.categoria_model import CategoriaModel
+from app.modules.materiales.material_model import MaterialConvocatoriaModel, MaterialFaseModel, MaterialModel, EstadoMaterial, TipoMaterialEnum
 from app.modules.convocatorias.convocatoria_model import ConvocatoriaModel
-from app.modules.fases.fase_model import FaseModel
-from app.modules.materiales.material_model import (
-    MaterialModel,
-    material_categoria,
-    material_convocatoria,
-    material_fase,
-)
-
 
 class MaterialRepository:
     def __init__(self, db: Session):
@@ -21,141 +12,51 @@ class MaterialRepository:
     def get_by_id(self, material_id: int):
         return self.db.query(MaterialModel).filter(MaterialModel.id_material == material_id).first()
 
-    def get_public_by_id(self, material_id: int):
-        return (
-            self.db.query(MaterialModel)
-            .filter(MaterialModel.id_material == material_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .first()
-        )
+    def get_all(
+        self, 
+        skip: int, 
+        limit: int, 
+        estado: Optional[EstadoMaterial], 
+        tipo_material: Optional[TipoMaterialEnum],
+        fecha_creacion_start: Optional[datetime],
+        fecha_creacion_end: Optional[datetime],
+        fecha_actualizacion_start: Optional[datetime],
+        fecha_actualizacion_end: Optional[datetime],
+        fecha_publicacion_start: Optional[datetime],
+        fecha_publicacion_end: Optional[datetime],
+        busqueda: Optional[str]
+    ):
+        query = self.db.query(MaterialModel)
 
-    def get_all(self, skip: int, limit: int):
-        return self.db.query(MaterialModel).offset(skip).limit(limit).all()
+        if estado: query = query.filter(MaterialModel.estado == estado)
+        if tipo_material: query = query.filter(MaterialModel.tipo_material == tipo_material)
+        if fecha_creacion_start: query = query.filter(MaterialModel.fecha_creacion >= fecha_creacion_start)
+        if fecha_creacion_end: query = query.filter(MaterialModel.fecha_creacion <= fecha_creacion_end)
+        if fecha_actualizacion_start: query = query.filter(MaterialModel.fecha_actualizacion >= fecha_actualizacion_start)
+        if fecha_actualizacion_end: query = query.filter(MaterialModel.fecha_actualizacion <= fecha_actualizacion_end)
+        if fecha_publicacion_start: query = query.filter(MaterialModel.fecha_publicacion >= fecha_publicacion_start)
+        if fecha_publicacion_end: query = query.filter(MaterialModel.fecha_publicacion <= fecha_publicacion_end)
+        if busqueda:
+            query = query.filter(or_(
+                MaterialModel.nombre_material.ilike(f"%{busqueda}%"),
+                MaterialModel.descripcion.ilike(f"%{busqueda}%")
+            ))
 
-    def count_all(self):
-        return self.db.query(MaterialModel).count()
+        total = query.count()
+        items = query.order_by(MaterialModel.fecha_creacion.desc()).offset(skip).limit(limit).all()
+        return items, total
 
-    def get_public(self, skip: int, limit: int):
-        return (
-            self.db.query(MaterialModel)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    def get_by_convocatoria(self, id_convocatoria: int):
+        return self.db.query(MaterialModel).join(MaterialConvocatoriaModel).filter(MaterialConvocatoriaModel.id_convocatoria == id_convocatoria).all()
 
-    def count_public(self):
-        return (
-            self.db.query(MaterialModel)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .count()
-        )
+    def get_by_fase(self, id_fase: int):
+        return self.db.query(MaterialModel).join(MaterialFaseModel).filter(MaterialFaseModel.id_fase == id_fase).all()
 
-    def get_public_by_convocatoria(self, convocatoria_id: int, skip: int, limit: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_convocatoria, material_convocatoria.c.id_material == MaterialModel.id_material)
-            .filter(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def count_public_by_convocatoria(self, convocatoria_id: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_convocatoria, material_convocatoria.c.id_material == MaterialModel.id_material)
-            .filter(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .count()
-        )
-
-    def get_public_by_categoria(self, categoria_id: int, skip: int, limit: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_categoria, material_categoria.c.id_material == MaterialModel.id_material)
-            .filter(material_categoria.c.id_categoria == categoria_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def count_public_by_categoria(self, categoria_id: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_categoria, material_categoria.c.id_material == MaterialModel.id_material)
-            .filter(material_categoria.c.id_categoria == categoria_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .count()
-        )
-
-    def get_public_by_fase(self, fase_id: int, skip: int, limit: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_fase, material_fase.c.id_material == MaterialModel.id_material)
-            .filter(material_fase.c.id_fase == fase_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def count_public_by_fase(self, fase_id: int):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_fase, material_fase.c.id_material == MaterialModel.id_material)
-            .filter(material_fase.c.id_fase == fase_id)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .count()
-        )
-
-    def get_convocatoria_material_by_tipo_public(self, convocatoria_id: int, importancia_tipo: str):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_convocatoria, material_convocatoria.c.id_material == MaterialModel.id_material)
-            .filter(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .filter(material_convocatoria.c.importancia_tipo == importancia_tipo)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-            .first()
-        )
-    
-    def get_principales_public(self, importancia_tipo: str | None = None):
-        query = (
-            self.db.query(MaterialModel, material_convocatoria.c.importancia_tipo)
-            .join(material_convocatoria, material_convocatoria.c.id_material == MaterialModel.id_material)
-            .filter(MaterialModel.estado == "PUBLICADO")
-            .filter(MaterialModel.fecha_publicacion.isnot(None))
-            .filter(MaterialModel.fecha_publicacion <= datetime.now())
-        )
-        if importancia_tipo:
-            query = query.filter(material_convocatoria.c.importancia_tipo == importancia_tipo)
-        else:
-            query = query.filter(
-                material_convocatoria.c.importancia_tipo.in_(["AFICHE", "CONVOCATORIA", "REGLAMENTO"])
-            )
-        return query.all()
+    def get_material_principal(self, id_convocatoria: int, tipo: TipoMaterialEnum):
+        return self.db.query(MaterialModel).join(MaterialConvocatoriaModel).filter(
+            MaterialConvocatoriaModel.id_convocatoria == id_convocatoria,
+            MaterialModel.tipo_material == tipo
+        ).first()
 
     def create(self, material: MaterialModel):
         self.db.add(material)
@@ -172,77 +73,26 @@ class MaterialRepository:
         self.db.delete(material)
         self.db.commit()
 
-    def convocatoria_exists(self, convocatoria_id: int):
-        return self.db.query(ConvocatoriaModel).filter(ConvocatoriaModel.id_convocatoria == convocatoria_id).first() is not None
-
-    def get_convocatoria(self, convocatoria_id: int):
-        return (
-            self.db.query(ConvocatoriaModel)
-            .filter(ConvocatoriaModel.id_convocatoria == convocatoria_id)
-            .first()
-        )
-
-    def categoria_exists(self, categoria_id: int):
-        return self.db.query(CategoriaModel).filter(CategoriaModel.id_categoria == categoria_id).first() is not None
-
-    def fase_exists(self, fase_id: int):
-        return self.db.query(FaseModel).filter(FaseModel.id_fase == fase_id).first() is not None
-
-    def replace_relations(
-        self,
-        material_id: int,
-        id_convocatoria: int | None,
-        id_categoria: int | None,
-        id_fase: int | None,
-        importancia_tipo: str = "OTRO",
-    ):
-        self.db.execute(delete(material_convocatoria).where(material_convocatoria.c.id_material == material_id))
-        self.db.execute(delete(material_categoria).where(material_categoria.c.id_material == material_id))
-        self.db.execute(delete(material_fase).where(material_fase.c.id_material == material_id))
-
-        if id_convocatoria is not None:
-            self.db.execute(
-                insert(material_convocatoria).values(
-                    id_convocatoria=id_convocatoria,
-                    id_material=material_id,
-                    importancia_tipo=importancia_tipo,
-                )
-            )
-        if id_categoria is not None:
-            self.db.execute(insert(material_categoria).values(id_categoria=id_categoria, id_material=material_id))
-        if id_fase is not None:
-            self.db.execute(insert(material_fase).values(id_fase=id_fase, id_material=material_id))
+    def link_convocatoria(self, id_material: int, id_convocatoria: int):
+        link = MaterialConvocatoriaModel(id_material=id_material, id_convocatoria=id_convocatoria)
+        self.db.add(link)
         self.db.commit()
 
-    def get_convocatoria_material_by_tipo(self, convocatoria_id: int, importancia_tipo: str):
-        return (
-            self.db.query(MaterialModel)
-            .join(material_convocatoria, material_convocatoria.c.id_material == MaterialModel.id_material)
-            .filter(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .filter(material_convocatoria.c.importancia_tipo == importancia_tipo)
-            .first()
-        )
-
-    def update_importancia_tipo(self, convocatoria_id: int, material_id: int, importancia_tipo: str):
-        self.db.execute(
-            update(material_convocatoria)
-            .where(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .where(material_convocatoria.c.id_material == material_id)
-            .values(importancia_tipo=importancia_tipo)
-        )
+    def unlink_convocatoria(self, id_material: int, id_convocatoria: int):
+        self.db.query(MaterialConvocatoriaModel).filter_by(id_material=id_material, id_convocatoria=id_convocatoria).delete()
         self.db.commit()
 
-    def set_relacion_convocatoria(self, convocatoria_id: int, material_id: int, importancia_tipo: str):
-        self.db.execute(
-            delete(material_convocatoria)
-            .where(material_convocatoria.c.id_convocatoria == convocatoria_id)
-            .where(material_convocatoria.c.id_material == material_id)
-        )
-        self.db.execute(
-            insert(material_convocatoria).values(
-                id_convocatoria=convocatoria_id,
-                id_material=material_id,
-                importancia_tipo=importancia_tipo,
-            )
-        )
+    def link_fase(self, id_material: int, id_fase: int):
+        link = MaterialFaseModel(id_material=id_material, id_fase=id_fase)
+        self.db.add(link)
         self.db.commit()
+
+    def unlink_fase(self, id_material: int, id_fase: int):
+        self.db.query(MaterialFaseModel).filter_by(id_material=id_material, id_fase=id_fase).delete()
+        self.db.commit()
+
+    def check_link_convocatoria(self, id_material: int, id_convocatoria: int) -> bool:
+        return self.db.query(MaterialConvocatoriaModel).filter_by(id_material=id_material, id_convocatoria=id_convocatoria).first() is not None
+
+    def check_link_fase(self, id_material: int, id_fase: int) -> bool:
+        return self.db.query(MaterialFaseModel).filter_by(id_material=id_material, id_fase=id_fase).first() is not None

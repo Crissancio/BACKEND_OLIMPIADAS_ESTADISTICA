@@ -1,38 +1,58 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field
 
-from pydantic import BaseModel, ConfigDict
+from app.modules.materiales.material_model import EstadoMaterial, EstadoTemporalMaterial, TipoMaterialEnum
 
 
-class MaterialCreateDTO(BaseModel):
+class MaterialBaseDTO(BaseModel):
     nombre_material: str
     descripcion: Optional[str] = None
-    tipo_material: str
+    tipo_material: TipoMaterialEnum
     fecha_publicacion: Optional[datetime] = None
-    id_convocatoria: Optional[int] = None
-    id_categoria: Optional[int] = None
-    id_fase: Optional[int] = None
+
+
+class MaterialExternoCreateDTO(MaterialBaseDTO):
+    enlace_acceso: str
 
 
 class MaterialUpdateDTO(BaseModel):
     nombre_material: Optional[str] = None
     descripcion: Optional[str] = None
-    tipo_material: Optional[str] = None
+    tipo_material: Optional[TipoMaterialEnum] = None
     fecha_publicacion: Optional[datetime] = None
-    id_convocatoria: Optional[int] = None
-    id_categoria: Optional[int] = None
-    id_fase: Optional[int] = None
+    enlace_acceso: Optional[str] = None
+
+
+class RelacionConvocatoriaDTO(BaseModel):
+    id_convocatoria: int
+    nombre_convocatoria: str
+    gestion: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RelacionFaseDTO(BaseModel):
+    id_fase: int
+    nombre_fase: str
+    nombre_categoria: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MaterialResponseDTO(BaseModel):
     id_material: int
     nombre_material: str
     enlace_acceso: str
-    descripcion: Optional[str] = None
+    descripcion: Optional[str]
     fecha_creacion: datetime
-    estado: str
-    tipo_material: str
-    fecha_publicacion: Optional[datetime] = None
-    estado_temporal: Optional[str] = None
+    fecha_actualizacion: datetime
+    estado: EstadoMaterial
+    estado_temporal: EstadoTemporalMaterial
+    tipo_material: TipoMaterialEnum
+    fecha_publicacion: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MaterialDetalleResponseDTO(MaterialResponseDTO):
+    convocatorias: List[RelacionConvocatoriaDTO] = []
+    fases: List[RelacionFaseDTO] = []

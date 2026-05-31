@@ -1,33 +1,37 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text, func
+import enum
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy.orm import relationship
 
 from app.db.database import Base
 
 
-material_convocatoria = Table(
-    "material_convocatoria",
-    Base.metadata,
-    Column("id_convocatoria", Integer, ForeignKey("convocatoria.id_convocatoria"), primary_key=True),
-    Column("id_material", Integer, ForeignKey("material.id_material"), primary_key=True),
-    Column("fecha_creacion", DateTime, server_default=func.now()),
-    Column("importancia_tipo", String(20), nullable=False, server_default="OTRO"),
-)
+class TipoMaterialEnum(str, enum.Enum):
+    PRINCIPAL = 'PRINCIPAL'
+    EXAMEN = 'EXAMEN'
+    SOLUCIONARIO = 'SOLUCIONARIO'
+    EJERCICIOS = 'EJERCICIOS'
+    DOCUMENTO = 'DOCUMENTO'
+    AFICHE = 'AFICHE'
+    CONVOCATORIA = 'CONVOCATORIA'
+    REGLAMENTO = 'REGLAMENTO'
+    DOCUMENTO_EXTERNO = 'DOCUMENTO_EXTERNO'
+    ARCHIVO_EXTERNO = 'ARCHIVO_EXTERNO'
+    PAGINA_EXTERNA = 'PAGINA_EXTERNA'
+    VIDEO_EXTERNO = 'VIDEO_EXTERNO'
+    OTRO = 'OTRO'
 
-material_categoria = Table(
-    "material_categoria",
-    Base.metadata,
-    Column("id_categoria", Integer, ForeignKey("categoria.id_categoria"), primary_key=True),
-    Column("id_material", Integer, ForeignKey("material.id_material"), primary_key=True),
-    Column("fecha_creacion", DateTime, server_default=func.now()),
-)
 
-material_fase = Table(
-    "material_fase",
-    Base.metadata,
-    Column("id_fase", Integer, ForeignKey("fase.id_fase"), primary_key=True),
-    Column("id_material", Integer, ForeignKey("material.id_material"), primary_key=True),
-    Column("fecha_creacion", DateTime, server_default=func.now()),
-)
+class EstadoMaterial(str, enum.Enum):
+    BORRADOR = 'BORRADOR'
+    PUBLICO = 'PUBLICO'
+    OCULTO = 'OCULTO'
 
+
+class EstadoTemporalMaterial(str, enum.Enum):
+    BORRADOR = 'BORRADOR'
+    OCULTO = 'OCULTO'
+    VISIBLE = 'VISIBLE'
+    NO_VISIBLE = 'NO_VISIBLE'
 
 class MaterialModel(Base):
     __tablename__ = "material"
@@ -37,6 +41,29 @@ class MaterialModel(Base):
     enlace_acceso = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=True)
     fecha_creacion = Column(DateTime, nullable=False, server_default=func.now())
-    estado = Column(String(20), nullable=False, server_default="BORRADOR")
-    tipo_material = Column(String(30), nullable=False)
+    fecha_actualizacion = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    estado = Column(Enum(EstadoMaterial, name="estado_material"), nullable=False, default=EstadoMaterial.BORRADOR)
+    tipo_material = Column(Enum(TipoMaterialEnum, name="tipo_material_enum"), nullable=False)
     fecha_publicacion = Column(DateTime, nullable=True)
+
+    convocatorias = relationship("MaterialConvocatoriaModel", back_populates="material", cascade="all, delete-orphan")
+    fases = relationship("MaterialFaseModel", back_populates="material", cascade="all, delete-orphan")
+
+class MaterialConvocatoriaModel(Base):
+    __tablename__ = "material_convocatoria"
+
+    id_convocatoria = Column(Integer, ForeignKey("convocatoria.id_convocatoria", ondelete="CASCADE"), primary_key=True)
+    id_material = Column(Integer, ForeignKey("material.id_material", ondelete="CASCADE"), primary_key=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+
+    material = relationship("MaterialModel", back_populates="convocatorias")
+    convocatoria = relationship("ConvocatoriaModel")
+
+class MaterialFaseModel(Base):
+    __tablename__ = "material_fase"
+
+    id_fase = Column(Integer, ForeignKey("fase.id_fase", ondelete="CASCADE"), primary_key=True)
+    id_material = Column(Integer, ForeignKey("material.id_material", ondelete="CASCADE"), primary_key=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+
+    material = relationship("MaterialModel", back_populates="fases")
