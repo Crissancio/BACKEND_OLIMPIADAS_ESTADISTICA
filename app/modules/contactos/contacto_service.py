@@ -1,17 +1,17 @@
 from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError, BusinessRuleError
-from app.modules.auth.auth_repository import AuthRepository
 from app.modules.contactos.contacto_model import ContactoModel, EstadoContacto
 from app.modules.contactos.contacto_repository import ContactoRepository
 from app.modules.contactos.contacto_schema import ContactoCreateDTO, ContactoRespuestaCreateDTO
 from app.modules.email_logs.email_log_model import EmailLog, EstadoEmail, TipoEmail
 from app.services.mailing.renderer import EmailRenderer
-
+from app.modules.sistema.sistema_repository import SistemaRepository
+from app.modules.sistema.sistema_model import ActividadSistemaModel, AuditoriaModel, TipoAccion, TipoModulo, TipoActividad
 class ContactoService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = ContactoRepository(db)
-        self.auth_repository = AuthRepository(db)
+        self.sistema_repository = SistemaRepository(db)
         self.renderer = EmailRenderer()
 
     def get_by_id(self, contacto_id: int):
@@ -36,6 +36,14 @@ class ContactoService:
             mensaje=data.mensaje,
             estado=EstadoContacto.PENDIENTE
         )
+        
+        actividad_registro = ActividadSistemaModel(
+            tipo=TipoActividad.EMAIL,
+            titulo="Creación de Contacto",
+            descripcion=f"Se creó un nuevo mensaje de contacto de {contacto.nombre_completo} con asunto {contacto.asunto}"
+        )
+        
+        self.sistema_repository.create_actividad(actividad_registro)
         return self.repository.create(contacto)
 
     def marcar_leido(self, contacto_id: int, current_admin_id: int):
@@ -46,7 +54,13 @@ class ContactoService:
         contacto.estado = EstadoContacto.LEIDO
         self.repository.update()
         self.db.refresh(contacto)
-        self.auth_repository.create_auditoria(admin_id=current_admin_id, accion="LEER_CONTACTO", descripcion=f"Contacto {contacto.id_contacto} marcado como leído")
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ACTUALIZAR,
+            modulo=TipoModulo.CONTACTO,
+            descripcion=f"Contacto {contacto.nombre_completo} {contacto.correo_electronico} marcado como leído"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return contacto
 
     def responder(self, contacto_id: int, data: ContactoRespuestaCreateDTO, current_admin_id: int):
@@ -79,15 +93,24 @@ class ContactoService:
         self.repository.update()
         self.db.refresh(contacto)
         
-        self.auth_repository.create_auditoria(
-            admin_id=current_admin_id, 
-            accion="RESPONDER_CONTACTO", 
-            descripcion=f"Respuesta generada para contacto {contacto.id_contacto}"
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.RESPONDER,
+            modulo=TipoModulo.CONTACTO,
+            descripcion=f"Contacto {contacto.nombre_completo} {contacto.correo_electronico} respondido"
         )
+        self.sistema_repository.create_auditoria(auditoria_registro)
+        
         return contacto
 
     def delete(self, contacto_id: int, current_admin_id: int):
         contacto = self.get_by_id(contacto_id)
         self.repository.delete(contacto)
-        self.auth_repository.create_auditoria(admin_id=current_admin_id, accion="ELIMINAR_CONTACTO", descripcion=f"Mensaje de contacto eliminado: {contacto.correo_electronico}")
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ELIMINAR,
+            modulo=TipoModulo.CONTACTO,
+            descripcion=f"Contacto {contacto.nombre_completo} {contacto.correo_electronico} eliminado"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return None
