@@ -17,7 +17,7 @@ router = APIRouter(prefix="/estudiantes", tags=["estudiantes"])
 @router.post("/", response_model=ResponseBase[EstudianteResponseDTO])
 def crear_estudiante(data: EstudianteCreateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = EstudianteService(db)
-    estudiante = service.crear_estudiante(data)
+    estudiante = service.crear_estudiante(data, current_admin_id)
     return ResponseBase(data=estudiante, message="Estudiante creado con éxito")
 
 @router.get("/", response_model=PaginatedResponse[EstudianteResponseDTO])
@@ -55,13 +55,13 @@ def obtener_estudiante(estudiante_id: int, db: Session = Depends(get_db), curren
 @router.patch("/{estudiante_id}", response_model=ResponseBase[EstudianteResponseDTO])
 def actualizar_estudiante(estudiante_id: int, data: EstudianteUpdateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = EstudianteService(db)
-    estudiante = service.actualizar_estudiante(estudiante_id, data)
+    estudiante = service.actualizar_estudiante(estudiante_id, data, current_admin_id)
     return ResponseBase(data=estudiante, message="Estudiante actualizado")
 
 @router.patch("/{estudiante_id}/estado", response_model=ResponseBase[EstudianteResponseDTO])
 def cambiar_estado_estudiante(estudiante_id: int, data: EstudianteEstadoUpdateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = EstudianteService(db)
-    estudiante = service.cambiar_estado(estudiante_id, data)
+    estudiante = service.cambiar_estado(estudiante_id, data, current_admin_id)
     return ResponseBase(data=estudiante, message="Estado actualizado (Alta/Baja)")
 
 @router.post("/exportar/csv")

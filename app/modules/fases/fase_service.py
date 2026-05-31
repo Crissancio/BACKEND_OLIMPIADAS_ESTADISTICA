@@ -10,12 +10,15 @@ from app.modules.fases.fase_schema import (
     FasePruebaCreateDTO,
     FasePruebaUpdateDTO,
 )
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 
 class FaseService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = FaseRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     def _map_to_polymorphic(self, fase: FaseModel):
         if fase.prueba:
@@ -46,7 +49,7 @@ class FaseService:
         mapped_items = [self._map_to_polymorphic(item) for item in items]
         return mapped_items
 
-    def create_fase_prueba(self, data: FasePruebaCreateDTO):
+    def create_fase_prueba(self, data: FasePruebaCreateDTO, current_admin_id: int):
         if data.id_fase_anterior:
             fase_ant = self.repository.get_by_id(data.id_fase_anterior)
             if not fase_ant or not fase_ant.prueba:
@@ -70,12 +73,18 @@ class FaseService:
                 lugar_realizacion=data.lugar_realizacion,
             )
             fase_completada = self.repository.create_fase_prueba(fase_prueba)
+            self._auditar_fase(
+                current_admin_id,
+                TipoAccion.CREAR,
+                TipoModulo.FASE_PRUEBA,
+                f"Fase de prueba creada {fase_base.nombre_fase}",
+            )
             return self._map_to_polymorphic(fase_completada)
         except Exception:
             self.db.rollback()
             raise
 
-    def create_fase_preparacion(self, data: FasePreparacionCreateDTO):
+    def create_fase_preparacion(self, data: FasePreparacionCreateDTO, current_admin_id: int):
         if data.fecha_inicio >= data.fecha_fin:
             raise BusinessRuleError("La fecha de inicio debe ser anterior a la fecha de fin.")
         try:
@@ -94,12 +103,18 @@ class FaseService:
                 fecha_fin=data.fecha_fin,
             )
             fase_completada = self.repository.create_fase_preparacion(fase_preparacion)
+            self._auditar_fase(
+                current_admin_id,
+                TipoAccion.CREAR,
+                TipoModulo.FASE_PREPARACION,
+                f"Fase de preparacion creada {fase_base.nombre_fase}",
+            )
             return self._map_to_polymorphic(fase_completada)
         except Exception:
             self.db.rollback()
             raise
 
-    def update_fase_prueba(self, fase_id: int, data: FasePruebaUpdateDTO):
+    def update_fase_prueba(self, fase_id: int, data: FasePruebaUpdateDTO, current_admin_id: int):
         fase = self.repository.get_by_id(fase_id)
         if not fase or not fase.prueba:
             raise NotFoundError("Fase de Prueba no encontrada")
@@ -117,9 +132,15 @@ class FaseService:
                 setattr(fase.prueba, key, value)
 
         self.repository.update(fase)
+        self._auditar_fase(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            TipoModulo.FASE_PRUEBA,
+            f"Fase de prueba actualizada {fase.nombre_fase}",
+        )
         return self._map_to_polymorphic(fase)
 
-    def update_fase_preparacion(self, fase_id: int, data: FasePreparacionUpdateDTO):
+    def update_fase_preparacion(self, fase_id: int, data: FasePreparacionUpdateDTO, current_admin_id: int):
         fase = self.repository.get_by_id(fase_id)
         if not fase or not fase.preparacion:
             raise NotFoundError("Fase de Preparación no encontrada")
@@ -132,9 +153,15 @@ class FaseService:
                 setattr(fase.preparacion, key, value)
 
         self.repository.update(fase)
+        self._auditar_fase(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            TipoModulo.FASE_PREPARACION,
+            f"Fase de preparacion actualizada {fase.nombre_fase}",
+        )
         return self._map_to_polymorphic(fase)
 
-    def cambiar_estado(self, fase_id: int, data: FaseEstadoUpdateDTO):
+    def cambiar_estado(self, fase_id: int, data: FaseEstadoUpdateDTO, current_admin_id: int):
         fase = self.repository.get_by_id(fase_id)
         if not fase:
             raise NotFoundError("Fase no encontrada")
@@ -151,14 +178,38 @@ class FaseService:
 
         fase.estado = nuevo_estado
         self.repository.update(fase)
+        self._auditar_fase(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            self._tipo_modulo_fase(fase),
+            f"Fase {fase.nombre_fase} cambio estado de {estado_actual} a {nuevo_estado}",
+        )
         return self._map_to_polymorphic(fase)
 
-    def baja_logica(self, fase_id: int):
+    def baja_logica(self, fase_id: int, current_admin_id: int):
         dto = FaseEstadoUpdateDTO(estado=EstadoEntidad.ELIMINADA)
-        return self.cambiar_estado(fase_id, dto)
+        return self.cambiar_estado(fase_id, dto, current_admin_id)
     
-    def eliminar_fase(self, fase_id: int):
+    def eliminar_fase(self, fase_id: int, current_admin_id: int):
         fase = self.repository.get_by_id(fase_id)
         if not fase:
             raise NotFoundError("Fase no encontrada")
+        modulo = self._tipo_modulo_fase(fase)
+        descripcion = f"Fase eliminada {fase.nombre_fase}"
         self.repository.delete(fase)
+        self._auditar_fase(current_admin_id, TipoAccion.ELIMINAR, modulo, descripcion)
+
+    def _tipo_modulo_fase(self, fase: FaseModel):
+        if fase.prueba:
+            return TipoModulo.FASE_PRUEBA
+        return TipoModulo.FASE_PREPARACION
+
+    def _auditar_fase(self, current_admin_id: int, accion: TipoAccion, modulo: TipoModulo, descripcion: str):
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=modulo,
+                descripcion=descripcion,
+            )
+        )

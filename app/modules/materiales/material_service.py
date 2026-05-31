@@ -11,6 +11,8 @@ from app.modules.materiales.material_repository import MaterialRepository
 from app.modules.materiales.material_schema import MaterialExternoCreateDTO, MaterialUpdateDTO
 from app.modules.convocatorias.convocatoria_repository import ConvocatoriaRepository
 from app.modules.convocatorias.convocatoria_model import EstadoConvocatoria
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 
 TIPOS_EXTERNOS = {TipoMaterialEnum.DOCUMENTO_EXTERNO, TipoMaterialEnum.PAGINA_EXTERNA, TipoMaterialEnum.VIDEO_EXTERNO, TipoMaterialEnum.ARCHIVO_EXTERNO}
@@ -21,6 +23,7 @@ class MaterialService:
         self.db = db
         self.repository = MaterialRepository(db)
         self.convocatoria_repo = ConvocatoriaRepository(db)
+        self.sistema_repository = SistemaRepository(db)
         self.storage = SupabaseStorageClient()
 
     def calcular_estado_temporal(self, material: MaterialModel) -> EstadoTemporalMaterial:
@@ -68,7 +71,7 @@ class MaterialService:
     def get_by_fase(self, id_fase: int):
         return [self._map_response(i) for i in self.repository.get_by_fase(id_fase)]
 
-    def create_externo(self, data: MaterialExternoCreateDTO):
+    def create_externo(self, data: MaterialExternoCreateDTO, current_admin_id: int):
         if data.tipo_material not in TIPOS_EXTERNOS:
             raise BusinessRuleError("Tipo de material no es externo")
         if data.fecha_publicacion and data.fecha_publicacion < datetime.now():
@@ -83,9 +86,14 @@ class MaterialService:
             estado=EstadoMaterial.BORRADOR
         )
         creado = self.repository.create(material)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.CREAR,
+            f"Material externo creado {creado.nombre_material} tipo {creado.tipo_material}",
+        )
         return self._map_response(creado)
 
-    def create_archivo(self, nombre_material: str, descripcion: str, tipo_material: TipoMaterialEnum, fecha_publicacion: datetime, file: UploadFile):
+    def create_archivo(self, nombre_material: str, descripcion: str, tipo_material: TipoMaterialEnum, fecha_publicacion: datetime, file: UploadFile, current_admin_id: int):
         if tipo_material in TIPOS_EXTERNOS or tipo_material in TIPOS_PRINCIPALES:
             raise BusinessRuleError("Use el endpoint correspondiente para este tipo de material")
         if fecha_publicacion and fecha_publicacion < datetime.now():
@@ -109,9 +117,14 @@ class MaterialService:
             fecha_creacion=fecha_creacion
         )
         creado = self.repository.create(material)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.CREAR,
+            f"Material de archivo creado {creado.nombre_material} tipo {creado.tipo_material}",
+        )
         return self._map_response(creado)
 
-    def create_principal(self, id_convocatoria: int, tipo_material: TipoMaterialEnum, nombre_material: str, descripcion: str, file: UploadFile):
+    def create_principal(self, id_convocatoria: int, tipo_material: TipoMaterialEnum, nombre_material: str, descripcion: str, file: UploadFile, current_admin_id: int):
         if tipo_material not in TIPOS_PRINCIPALES:
             raise BusinessRuleError("El tipo de material no es principal")
         convocatoria = self.convocatoria_repo.get_by_id(id_convocatoria)
@@ -140,9 +153,14 @@ class MaterialService:
         )
         creado = self.repository.create(material)
         self.repository.link_convocatoria(creado.id_material, id_convocatoria)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.CREAR,
+            f"Material principal creado {creado.nombre_material} tipo {creado.tipo_material} para convocatoria {convocatoria.nombre_convocatoria}",
+        )
         return self._map_response(creado)
 
-    def update(self, material_id: int, data: MaterialUpdateDTO):
+    def update(self, material_id: int, data: MaterialUpdateDTO, current_admin_id: int):
         material = self.repository.get_by_id(material_id)
         if not material: raise NotFoundError("Material no encontrado")
 
@@ -180,9 +198,14 @@ class MaterialService:
                 pass
 
         actualizado = self.repository.update(material)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Material actualizado {actualizado.nombre_material} tipo {actualizado.tipo_material}",
+        )
         return self._map_response(actualizado)
 
-    def delete(self, material_id: int):
+    def delete(self, material_id: int, current_admin_id: int):
         material = self.repository.get_by_id(material_id)
         if not material: raise NotFoundError("Material no encontrado")
 
@@ -190,16 +213,19 @@ class MaterialService:
             raise BusinessRuleError("No se puede eliminar un material principal asociado a una convocatoria")
 
         enlace = material.enlace_acceso
+        descripcion = f"Material eliminado {material.nombre_material} tipo {material.tipo_material}"
         self.repository.delete(material)
 
         if material.tipo_material not in TIPOS_EXTERNOS:
             self.storage.delete_file(enlace)
+        self._auditar(current_admin_id, TipoAccion.ELIMINAR, descripcion)
         
         return {"id_material": material_id}
 
-    def cambiar_estado(self, material_id: int, nuevo_estado: EstadoMaterial):
+    def cambiar_estado(self, material_id: int, nuevo_estado: EstadoMaterial, current_admin_id: int):
         material = self.repository.get_by_id(material_id)
         if not material: raise NotFoundError("Material no encontrado")
+        estado_actual = material.estado
 
         if nuevo_estado == EstadoMaterial.BORRADOR:
             raise BusinessRuleError("No se puede regresar a BORRADOR")
@@ -212,9 +238,15 @@ class MaterialService:
 
         material.estado = nuevo_estado
         actualizado = self.repository.update(material)
+        accion = TipoAccion.PUBLICAR if nuevo_estado == EstadoMaterial.PUBLICO else TipoAccion.OCULTAR
+        self._auditar(
+            current_admin_id,
+            accion,
+            f"Material {actualizado.nombre_material} cambio estado de {estado_actual} a {nuevo_estado}",
+        )
         return self._map_response(actualizado)
 
-    def link_convocatoria(self, id_material: int, id_convocatoria: int):
+    def link_convocatoria(self, id_material: int, id_convocatoria: int, current_admin_id: int):
         material = self.repository.get_by_id(id_material)
         if not material: raise NotFoundError("Material no encontrado")
         convocatoria = self.convocatoria_repo.get_by_id(id_convocatoria)
@@ -228,9 +260,14 @@ class MaterialService:
             raise BusinessRuleError("El material ya está enlazado a esta convocatoria")
 
         self.repository.link_convocatoria(id_material, id_convocatoria)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Material {material.nombre_material} enlazado a convocatoria {convocatoria.nombre_convocatoria}",
+        )
         return {"success": True}
 
-    def link_fase(self, id_material: int, id_fase: int):
+    def link_fase(self, id_material: int, id_fase: int, current_admin_id: int):
         material = self.repository.get_by_id(id_material)
         if not material: raise NotFoundError("Material no encontrado")
         if material.tipo_material in TIPOS_PRINCIPALES:
@@ -239,9 +276,14 @@ class MaterialService:
             raise BusinessRuleError("El material ya está enlazado a esta fase")
 
         self.repository.link_fase(id_material, id_fase)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Material {material.nombre_material} enlazado a fase {id_fase}",
+        )
         return {"success": True}
 
-    def unlink_convocatoria(self, id_material: int, id_convocatoria: int):
+    def unlink_convocatoria(self, id_material: int, id_convocatoria: int, current_admin_id: int):
         material = self.repository.get_by_id(id_material)
         if not material: raise NotFoundError("Material no encontrado")
         convocatoria = self.convocatoria_repo.get_by_id(id_convocatoria)
@@ -250,8 +292,30 @@ class MaterialService:
             raise BusinessRuleError("No puede desligar un material principal de una convocatoria PUBLICADA")
 
         self.repository.unlink_convocatoria(id_material, id_convocatoria)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Material {material.nombre_material} desligado de convocatoria {id_convocatoria}",
+        )
         return {"success": True}
 
-    def unlink_fase(self, id_material: int, id_fase: int):
+    def unlink_fase(self, id_material: int, id_fase: int, current_admin_id: int):
+        material = self.repository.get_by_id(id_material)
+        if not material: raise NotFoundError("Material no encontrado")
         self.repository.unlink_fase(id_material, id_fase)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Material {material.nombre_material} desligado de fase {id_fase}",
+        )
         return {"success": True}
+
+    def _auditar(self, current_admin_id: int, accion: TipoAccion, descripcion: str):
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=TipoModulo.MATERIAL,
+                descripcion=descripcion,
+            )
+        )

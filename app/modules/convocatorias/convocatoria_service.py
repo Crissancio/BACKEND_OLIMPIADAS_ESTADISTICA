@@ -8,11 +8,14 @@ from app.modules.convocatorias.convocatoria_schema import ConvocatoriaCreateDTO,
 # al inicio de convocatoria_service.py, agregá:
 from app.modules.materiales.material_repository import MaterialRepository
 from app.modules.materiales.material_model import EstadoMaterial, TipoMaterialEnum
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 class ConvocatoriaService:
     def __init__(self, db: Session):
         self.repository = ConvocatoriaRepository(db)
         self.material_repo = MaterialRepository(db)
+        self.sistema_repository = SistemaRepository(db)
         
     def calculate_estado_temporal(self, convocatoria: ConvocatoriaModel) -> EstadoTemporal:
         if convocatoria.estado == EstadoConvocatoria.OCULTA:
@@ -85,7 +88,7 @@ class ConvocatoriaService:
 
         return mapped_items, total
 
-    def create(self, data: ConvocatoriaCreateDTO):
+    def create(self, data: ConvocatoriaCreateDTO, current_admin_id: int):
         if data.gestion < datetime.now().year:
             raise BusinessRuleError("La gestión debe ser igual o mayor al año en curso.")
         
@@ -106,9 +109,17 @@ class ConvocatoriaService:
         conv_dict["estado"] = EstadoConvocatoria.BORRADOR
         convocatoria = ConvocatoriaModel(**conv_dict)
         creada = self.repository.create(convocatoria)
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=TipoAccion.CREAR,
+                modulo=TipoModulo.CONVOCATORIA,
+                descripcion=f"Convocatoria creada {creada.nombre_convocatoria} gestion {creada.gestion}",
+            )
+        )
         return self._map_response(creada)
 
-    def update(self, convocatoria_id: int, data: ConvocatoriaUpdateDTO):
+    def update(self, convocatoria_id: int, data: ConvocatoriaUpdateDTO, current_admin_id: int):
         convocatoria = self.repository.get_by_id(convocatoria_id)
         if not convocatoria:
             raise NotFoundError("Convocatoria no encontrada")
@@ -165,9 +176,17 @@ class ConvocatoriaService:
             setattr(convocatoria, key, value)
 
         actualizada = self.repository.update(convocatoria)
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=TipoAccion.ACTUALIZAR,
+                modulo=TipoModulo.CONVOCATORIA,
+                descripcion=f"Convocatoria actualizada {actualizada.nombre_convocatoria} gestion {actualizada.gestion}",
+            )
+        )
         return self._map_response(actualizada)
 
-    def cambiar_estado(self, convocatoria_id: int, nuevo_estado: EstadoConvocatoria):
+    def cambiar_estado(self, convocatoria_id: int, nuevo_estado: EstadoConvocatoria, current_admin_id: int):
         convocatoria = self.repository.get_by_id(convocatoria_id)
         if not convocatoria:
             raise NotFoundError("Convocatoria no encontrada")
@@ -203,9 +222,23 @@ class ConvocatoriaService:
 
         convocatoria.estado = nuevo_estado
         actualizada = self.repository.update(convocatoria)
+        accion = TipoAccion.ACTUALIZAR
+        if nuevo_estado == EstadoConvocatoria.PUBLICADA:
+            accion = TipoAccion.PUBLICAR
+        elif nuevo_estado == EstadoConvocatoria.OCULTA:
+            accion = TipoAccion.OCULTAR
+
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=TipoModulo.CONVOCATORIA,
+                descripcion=f"Convocatoria {actualizada.nombre_convocatoria} cambio estado de {estado_actual} a {nuevo_estado}",
+            )
+        )
         return self._map_response(actualizada)
     
-    def delete(self, convocatoria_id: int):
+    def delete(self, convocatoria_id: int, current_admin_id: int):
         convocatoria = self.repository.get_by_id(convocatoria_id)
         if not convocatoria:
             raise NotFoundError("Convocatoria no encontrada")
@@ -213,7 +246,16 @@ class ConvocatoriaService:
         if convocatoria.estado == EstadoConvocatoria.PUBLICADA:
             raise BusinessRuleError("No se puede eliminar físicamente una convocatoria con estado PUBLICADA.")
 
+        descripcion = f"Convocatoria eliminada {convocatoria.nombre_convocatoria} gestion {convocatoria.gestion}"
         self.repository.delete(convocatoria)
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=TipoAccion.ELIMINAR,
+                modulo=TipoModulo.CONVOCATORIA,
+                descripcion=descripcion,
+            )
+        )
         return {"id_convocatoria": convocatoria_id}
     
     def _validar_materiales_principales(self, convocatoria_id: int):

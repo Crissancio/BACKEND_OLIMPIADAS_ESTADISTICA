@@ -54,13 +54,13 @@ def obtener_log_por_id(
     return ResponseBase(success=True, message="Log obtenido correctamente", data=log)
 
 @router.post("/reintentar-fallidos")
-def reintentar_fallidos(db: Session = Depends(get_db)):
+def reintentar_fallidos(db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = EmailLogService(db)
-    afectados = service.reintentar_fallidos()
+    afectados = service.reintentar_fallidos(current_admin_id)
     return ResponseBase(success=True, message=f"{afectados} correos pasados a PENDIENTE", data=None)
 
 @router.post("/{id}/reintentar", response_model=ResponseBase[EmailLogResponseDTO])
-def reintentar_un_fallido(id: int, db: Session = Depends(get_db)):
+def reintentar_un_fallido(id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = EmailLogService(db)
-    log = service.reintentar_fallido(id)
+    log = service.reintentar_fallido(id, current_admin_id)
     return ResponseBase(success=True, message="El correo ha sido encolado para reintento", data=log)

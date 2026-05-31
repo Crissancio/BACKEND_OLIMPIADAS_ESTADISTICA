@@ -9,11 +9,14 @@ from app.modules.resultados.resultado_schema import (
     ResultadoMasivoUpdateDTO,
     ResultadoUpdateDTO
 )
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 
 class ResultadoService:
     def __init__(self, db: Session):
         self.repository = ResultadoRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     def get_by_id(self, resultado_id: int):
         resultado = self.repository.get_by_id(resultado_id)
@@ -48,7 +51,7 @@ class ResultadoService:
             for r in rows
         ]
 
-    def create(self, data: ResultadoCreateDTO):
+    def create(self, data: ResultadoCreateDTO, current_admin_id: int):
         existente = self.repository.get_by_inscripcion_y_fase(data.id_inscripcion, data.id_fase_prueba)
         if existente:
             raise BusinessRuleError("Ya existe un resultado para esta inscripción en esta fase.")
@@ -61,9 +64,15 @@ class ResultadoService:
             observaciones=data.observaciones,
             estado=EstadoResultado.BORRADOR
         )
-        return self.repository.create(resultado)
+        created = self.repository.create(resultado)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.CREAR,
+            f"Resultado creado para inscripcion {created.id_inscripcion} en fase {created.id_fase_prueba}",
+        )
+        return created
 
-    def create_masivo(self, data: ResultadoMasivoCreateDTO):
+    def create_masivo(self, data: ResultadoMasivoCreateDTO, current_admin_id: int):
         nuevos_resultados = []
         for id_insc in data.ids_inscripciones:
             existente = self.repository.get_by_inscripcion_y_fase(id_insc, data.id_fase_prueba)
@@ -80,9 +89,14 @@ class ResultadoService:
                 )
         if nuevos_resultados:
             self.repository.bulk_save(nuevos_resultados)
+            self._auditar(
+                current_admin_id,
+                TipoAccion.CREAR,
+                f"Resultados masivos creados: {len(nuevos_resultados)} en fase {data.id_fase_prueba}",
+            )
         return len(nuevos_resultados)
 
-    def update(self, resultado_id: int, data: ResultadoUpdateDTO):
+    def update(self, resultado_id: int, data: ResultadoUpdateDTO, current_admin_id: int):
         resultado = self.get_by_id(resultado_id)
 
         if resultado.estado == EstadoResultado.PUBLICADO:
@@ -92,9 +106,15 @@ class ResultadoService:
         for key, value in updates.items():
             setattr(resultado, key, value)
 
-        return self.repository.update(resultado)
+        updated = self.repository.update(resultado)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Resultado actualizado {updated.id_resultado} para inscripcion {updated.id_inscripcion}",
+        )
+        return updated
 
-    def update_masivo(self, data: ResultadoMasivoUpdateDTO):
+    def update_masivo(self, data: ResultadoMasivoUpdateDTO, current_admin_id: int):
         actualizados = 0
         for item in data.resultados:
             resultado = self.repository.get_by_id_y_fase(item.id_resultado, data.id_fase_prueba)
@@ -106,9 +126,14 @@ class ResultadoService:
 
         if actualizados > 0:
             self.repository.bulk_update()
+            self._auditar(
+                current_admin_id,
+                TipoAccion.ACTUALIZAR,
+                f"Resultados masivos actualizados: {actualizados} en fase {data.id_fase_prueba}",
+            )
         return actualizados
 
-    def cambiar_estado_individual(self, resultado_id: int, data: ResultadoEstadoUpdateDTO):
+    def cambiar_estado_individual(self, resultado_id: int, data: ResultadoEstadoUpdateDTO, current_admin_id: int):
         resultado = self.get_by_id(resultado_id)
         estado_actual = resultado.estado
         nuevo_estado = data.estado
@@ -123,20 +148,47 @@ class ResultadoService:
             raise BusinessRuleError("Solo la ruta de fase masiva puede ocultar resultados. Use la ruta de fase.")
 
         resultado.estado = nuevo_estado
-        return self.repository.update(resultado)
+        updated = self.repository.update(resultado)
+        accion = TipoAccion.PUBLICAR if nuevo_estado == EstadoResultado.PUBLICADO else TipoAccion.OCULTAR
+        self._auditar(
+            current_admin_id,
+            accion,
+            f"Resultado {updated.id_resultado} cambio estado de {estado_actual} a {nuevo_estado}",
+        )
+        return updated
 
-    def publicar_fase(self, id_fase_prueba: int):
+    def publicar_fase(self, id_fase_prueba: int, current_admin_id: int):
         resultados = self.repository.get_all_by_fase(id_fase_prueba)
         for res in resultados:
             if res.estado == EstadoResultado.BORRADOR or res.estado == EstadoResultado.OCULTO:
                 res.estado = EstadoResultado.PUBLICADO
         self.repository.bulk_update()
+        self._auditar(
+            current_admin_id,
+            TipoAccion.PUBLICAR,
+            f"Resultados publicados para fase {id_fase_prueba}: {len(resultados)} registros",
+        )
         return len(resultados)
 
-    def ocultar_fase(self, id_fase_prueba: int):
+    def ocultar_fase(self, id_fase_prueba: int, current_admin_id: int):
         resultados = self.repository.get_all_by_fase(id_fase_prueba)
         for res in resultados:
             if res.estado == EstadoResultado.PUBLICADO:
                 res.estado = EstadoResultado.OCULTO
         self.repository.bulk_update()
+        self._auditar(
+            current_admin_id,
+            TipoAccion.OCULTAR,
+            f"Resultados ocultados para fase {id_fase_prueba}: {len(resultados)} registros",
+        )
         return len(resultados)
+
+    def _auditar(self, current_admin_id: int, accion: TipoAccion, descripcion: str):
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=TipoModulo.RESULTADO,
+                descripcion=descripcion,
+            )
+        )

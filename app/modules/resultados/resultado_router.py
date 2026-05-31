@@ -71,7 +71,7 @@ def crear_resultado(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    resultado = service.create(data)
+    resultado = service.create(data, current_admin_id)
     return ResponseBase(data=resultado, message="Resultado creado exitosamente")
 
 
@@ -82,7 +82,7 @@ def crear_resultados_masivos(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    creados = service.create_masivo(data)
+    creados = service.create_masivo(data, current_admin_id)
     return ResponseBase(data=creados, message=f"{creados} resultados creados masivamente en borrador")
 
 
@@ -93,7 +93,7 @@ def actualizar_resultados_masivos(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    actualizados = service.update_masivo(data)
+    actualizados = service.update_masivo(data, current_admin_id)
     return ResponseBase(data=actualizados, message=f"{actualizados} resultados actualizados masivamente")
 
 
@@ -105,7 +105,7 @@ def actualizar_resultado(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    resultado = service.update(resultado_id, data)
+    resultado = service.update(resultado_id, data, current_admin_id)
     return ResponseBase(data=resultado, message="Resultado actualizado exitosamente")
 
 
@@ -117,7 +117,7 @@ def cambiar_estado_resultado_individual(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    resultado = service.cambiar_estado_individual(resultado_id, data)
+    resultado = service.cambiar_estado_individual(resultado_id, data, current_admin_id)
     return ResponseBase(data=resultado, message="Estado del resultado actualizado")
 
 
@@ -128,7 +128,7 @@ def publicar_resultados_fase(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    modificados = service.publicar_fase(id_fase_prueba)
+    modificados = service.publicar_fase(id_fase_prueba, current_admin_id)
     return ResponseBase(data=modificados, message="Resultados de la fase publicados correctamente")
 
 
@@ -139,7 +139,7 @@ def ocultar_resultados_fase(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
-    modificados = service.ocultar_fase(id_fase_prueba)
+    modificados = service.ocultar_fase(id_fase_prueba, current_admin_id)
     return ResponseBase(data=modificados, message="Resultados de la fase ocultados correctamente")
 
 @router.post("/import-csv/analizar/{id_fase_prueba}", response_model=ResponseBase[AnalisisImportacionResponseDTO])
@@ -161,7 +161,7 @@ def importar_csv_definitivo(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = CSVImportService(db)
-    resultado = service.procesar_importacion(id_fase_prueba, payload)
+    resultado = service.procesar_importacion(id_fase_prueba, payload, current_admin_id)
     return ResponseBase(data=resultado, message="Importación masiva completada correctamente.")
 
 @router.get("/import-csv/download/{filename}")

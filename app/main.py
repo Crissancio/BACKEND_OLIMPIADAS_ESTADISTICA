@@ -24,9 +24,8 @@ from contextlib import asynccontextmanager
 from app.core.startup import create_initial_admin
 from app.modules.resultados.resultado_router import router as resultados_router
 import logging
-from contextlib import asynccontextmanager
 from app.core.config import settings
-from app.scheduler.scheduler import scheduler
+from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(
     level=settings.log_level,
@@ -41,7 +40,7 @@ async def lifespan(app: FastAPI):
     create_initial_admin()
     
     if settings.scheduler_enabled:
-        scheduler.start()
+        start_scheduler()
         logger.info(
             "\n\n\t\tAPScheduler iniciado correctamente\n\n"
         )
@@ -51,7 +50,7 @@ async def lifespan(app: FastAPI):
         )
     yield
     if settings.scheduler_enabled:
-        scheduler.shutdown()
+        shutdown_scheduler()
         logger.info(
             "\n\n\t\tAPScheduler detenido\n\n"
         )

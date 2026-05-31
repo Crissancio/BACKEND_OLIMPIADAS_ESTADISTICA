@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.modules.auth.auth_model import AdministradorModel, AuditoriaModel
+from app.modules.auth.auth_model import AdministradorModel
 
 
 class AuthRepository:

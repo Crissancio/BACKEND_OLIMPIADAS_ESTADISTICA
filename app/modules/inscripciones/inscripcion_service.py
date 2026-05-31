@@ -107,9 +107,9 @@ class InscripcionService:
             self.db.refresh(inscripcion)
             
             actividad_registro = ActividadSistemaModel(
-                titulo=f"Inscripción creada para el estudiante: {estudiante.nombre} {estudiante.apellido}",
-                descripcion=f"Se ha creado una nueva inscripción para el estudiante: {estudiante.nombre} {estudiante.apellido}  {estudiante.materno} con CI: {inscripcion.id_inscripcion}",
-                tipo = TipoActividad.INSCRIPCION
+                titulo=f"Inscripcion creada para el estudiante: {persona.nombres} {persona.paterno}",
+                descripcion=f"Se ha creado una nueva inscripcion para el estudiante: {persona.nombres} {persona.paterno} {persona.materno or ''} con registro {inscripcion.id_inscripcion}",
+                tipo=TipoActividad.INSCRIPCION,
             )
             
             self.sistema_repository.create_actividad(actividad_registro)
@@ -153,17 +153,16 @@ class InscripcionService:
             estado="PENDIENTE"
         )
         
+        self.repository.create_inscripcion(nueva_inscripcion)
+        self.repository.commit()
+        self.db.refresh(nueva_inscripcion)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.CREAR,
             modulo=TipoModulo.INSCRIPCION,
-            descripcion=f"Se creó la inscripción para el estudiante: {estudiante.nombre} {estudiante.paterno} {estudiante.materno} con CI: {nueva_inscripcion.id_inscripcion}"
+            descripcion=f"Se creo la inscripcion {nueva_inscripcion.id_inscripcion} para el estudiante {estudiante.nombres} {estudiante.paterno} con CI {estudiante.carnet_identidad}"
         )
-        
-        self.repository.create_inscripcion(nueva_inscripcion)
         self.sistema_repository.create_auditoria(auditoria_registro)
-        self.repository.commit()
-        self.db.refresh(nueva_inscripcion)
         return nueva_inscripcion
 
     def list_all(
@@ -186,32 +185,30 @@ class InscripcionService:
         inscripcion = self.obtener_por_id(inscripcion_id)
         if data.estado not in ["APROBADO", "RECHAZADO", "PENDIENTE"]:
             raise BusinessRuleError("Estado de inscripcion invalido")
+        estado_anterior = inscripcion.estado
         inscripcion.estado = data.estado
-        
+        self.repository.commit()
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.INSCRIPCION,
-            descripcion=f"Se actualizó la inscripción para el estudiante: {inscripcion.estudiante.nombre} {inscripcion.estudiante.paterno} {inscripcion.estudiante.materno} con CI: {inscripcion.id_inscripcion}"
+            descripcion=f"Inscripcion {inscripcion.id_inscripcion} cambio estado de {estado_anterior} a {data.estado}"
         )
-        
         self.sistema_repository.create_auditoria(auditoria_registro)
-        self.repository.commit()
         return inscripcion
 
     def eliminar_inscripcion(self, inscripcion_id: int, current_admin_id: int):
         inscripcion = self.obtener_por_id(inscripcion_id)
+        descripcion = f"Inscripcion eliminada {inscripcion.id_inscripcion} del estudiante {inscripcion.id_estudiante}"
         self.repository.delete(inscripcion)
-        
+        self.repository.commit()
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ELIMINAR,
             modulo=TipoModulo.INSCRIPCION,
-            descripcion=f"Se eliminó la inscripción para el estudiante: {inscripcion.estudiante.nombre} {inscripcion.estudiante.paterno} {inscripcion.estudiante.materno} con CI: {inscripcion.id_inscripcion}"
+            descripcion=descripcion
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        
-        self.repository.commit()
 
     def _obtener_o_crear_estudiante(self, data: InscripcionFormularioDTO, colegio_id: int):
         estudiante_data = data.estudiante

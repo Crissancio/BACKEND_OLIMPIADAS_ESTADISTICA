@@ -102,7 +102,7 @@ class AvisoService:
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.AVISO,
-            descripcion=f"Aviso cambio su estado de {estado_actual} a {nuevo_estado} {aviso.titulo} de tipo {aviso.tipo}"
+            descripcion=f"Aviso cambio su estado de {estado_actual} a {nuevo_estado} {updated_aviso.titulo} de tipo {updated_aviso.tipo}"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
         return self._with_estado_temporal(updated_aviso)
@@ -110,13 +110,14 @@ class AvisoService:
     def delete(self, aviso_id: int, current_admin_id: int):
         aviso = self._get_model_by_id(aviso_id)
         deleted = self._with_estado_temporal(aviso)
+        descripcion = f"Aviso eliminado {aviso.titulo} de tipo {aviso.tipo}"
         self.repository.delete(aviso)
         
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ELIMINAR,
             modulo=TipoModulo.AVISO,
-            descripcion=f"Aviso eliminado {aviso.titulo} de tipo {aviso.tipo}"
+            descripcion=descripcion
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
         

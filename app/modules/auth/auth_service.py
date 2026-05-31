@@ -6,11 +6,14 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.modules.auth.auth_model import AdministradorModel
 from app.modules.auth.auth_repository import AuthRepository
 from app.modules.auth.auth_schema import AdminCreateDTO, CambiarContrasenaDTO, LoginDTO
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 
 class AuthService:
     def __init__(self, db: Session):
         self.repository = AuthRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     def login(self, data: LoginDTO):
         admin = self.repository.get_admin_by_correo(data.correo)
@@ -20,11 +23,6 @@ class AuthService:
             raise AuthenticationError("Administrador inactivo")
 
         access_token = create_access_token(admin.id_administrador)
-        self.repository.create_auditoria(
-            admin_id=admin.id_administrador,
-            accion="LOGIN",
-            descripcion="Login exitoso",
-        )
 
         return {
             "access_token": access_token,
@@ -54,10 +52,13 @@ class AuthService:
         created_admin = self.repository.create_admin(admin)
 
         if current_admin_id is not None:
-            self.repository.create_auditoria(
-                admin_id=current_admin_id,
-                accion="CREAR_ADMINISTRADOR",
-                descripcion=f"Administrador creado: {created_admin.correo}",
+            self.sistema_repository.create_auditoria(
+                AuditoriaModel(
+                    id_administrador=current_admin_id,
+                    accion=TipoAccion.CREAR,
+                    modulo=TipoModulo.ADMINISTRADOR,
+                    descripcion=f"Administrador registrado {created_admin.nombre} {created_admin.correo}",
+                )
             )
 
         return created_admin
@@ -82,12 +83,15 @@ class AuthService:
 
         admin.contrasena = hash_password(data.nueva_contrasena)
         self.repository.update_admin(admin)
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=admin_id,
+                accion=TipoAccion.ACTUALIZAR,
+                modulo=TipoModulo.ADMINISTRADOR,
+                descripcion=f"Administrador {admin.nombre} {admin.correo} cambio su contrasena",
+            )
+        )
         return {"actualizado": True}
 
     def logout(self, admin_id: int):
-        self.repository.create_auditoria(
-            admin_id=admin_id,
-            accion="LOGOUT",
-            descripcion="Logout exitoso",
-        )
         return {"logout": True}

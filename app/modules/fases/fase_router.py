@@ -51,7 +51,7 @@ def crear_fase_prueba(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    resultado = service.create_fase_prueba(data)
+    resultado = service.create_fase_prueba(data, current_admin_id)
     return ResponseBase(data=resultado, message="Fase de Prueba creada exitosamente")
 
 @router.put("/prueba/{fase_id}", response_model=ResponseBase[FasePruebaResponseDTO])
@@ -62,7 +62,7 @@ def actualizar_fase_prueba(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    fase = service.update_fase_prueba(fase_id, data)
+    fase = service.update_fase_prueba(fase_id, data, current_admin_id)
     return ResponseBase(data=fase, message="Fase de Prueba actualizada exitosamente")
 
 @router.post("/preparacion", response_model=ResponseBase[FasePreparacionResponseDTO])
@@ -72,7 +72,7 @@ def crear_fase_preparacion(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    resultado = service.create_fase_preparacion(data)
+    resultado = service.create_fase_preparacion(data, current_admin_id)
     return ResponseBase(data=resultado, message="Fase de Preparación creada exitosamente")
 
 @router.put("/preparacion/{fase_id}", response_model=ResponseBase[FasePreparacionResponseDTO])
@@ -83,7 +83,7 @@ def actualizar_fase_preparacion(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    fase = service.update_fase_preparacion(fase_id, data)
+    fase = service.update_fase_preparacion(fase_id, data, current_admin_id)
     return ResponseBase(data=fase, message="Fase de Preparación actualizada exitosamente")
 
 @router.patch("/{fase_id}/estado", response_model=ResponseBase[FaseResponsePolymorphic])
@@ -94,7 +94,7 @@ def cambiar_estado_fase(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    fase = service.cambiar_estado(fase_id, data)
+    fase = service.cambiar_estado(fase_id, data, current_admin_id)
     return ResponseBase(data=fase, message="Estado de la fase actualizado exitosamente")
 
 @router.patch("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
@@ -104,7 +104,7 @@ def eliminar_fase_logica(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    fase = service.baja_logica(fase_id)
+    fase = service.baja_logica(fase_id, current_admin_id)
     return ResponseBase(data=fase, message="Fase dada de baja correctamente")
 
 @router.delete("/{fase_id}")
@@ -114,5 +114,5 @@ def eliminar_fase(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = FaseService(db)
-    service.eliminar_fase(fase_id)
+    service.eliminar_fase(fase_id, current_admin_id)
     return ResponseBase(data={}, message="Fase eliminada correctamente")

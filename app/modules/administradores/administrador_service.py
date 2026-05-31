@@ -40,15 +40,15 @@ class AdministradorService:
             estado="ACTIVO",
         )
 
+        created = self.repository.create(administrador)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.CREAR,
             modulo=TipoModulo.ADMINISTRADOR,
-            descripcion=f"Administrador {data.nombre} {data.correo} creado"
+            descripcion=f"Administrador {created.nombre} {created.correo} creado"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        
-        return self.repository.create(administrador)
+        return created
 
     def update(self, administrador_id: int, data: AdministradorUpdateDTO, current_admin_id: int):
         administrador = self.get_by_id(administrador_id)
@@ -62,15 +62,15 @@ class AdministradorService:
         for key, value in updates.items():
             setattr(administrador, key, value)
 
+        updated = self.repository.update(administrador)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.ADMINISTRADOR,
-            descripcion=f"Administrador {administrador.nombre} {administrador.correo} actualizado"
+            descripcion=f"Administrador {updated.nombre} {updated.correo} actualizado"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-
-        return self.repository.update(administrador)
+        return updated
 
     def delete_total(self, administrador_id: int, current_admin_id: int):
         administrador = self.get_by_id(administrador_id)
@@ -80,13 +80,14 @@ class AdministradorService:
             "correo": administrador.correo,
             "estado": administrador.estado,
         }
+        descripcion = f"Administrador {administrador.nombre} {administrador.correo} eliminado"
         self.repository.delete(administrador)
         
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ELIMINAR,
             modulo=TipoModulo.ADMINISTRADOR,
-            descripcion=f"Administrador {administrador.nombre} {administrador.correo} eliminado"
+            descripcion=descripcion
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
         return data
@@ -94,28 +95,28 @@ class AdministradorService:
     def baja_logic(self, administrador_id: int, current_admin_id: int):
         administrador = self.get_by_id(administrador_id)
         administrador.estado = "INACTIVO"
-        
+        updated = self.repository.update(administrador)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.ADMINISTRADOR,
-            descripcion=f"Administrador {administrador.nombre} {administrador.correo} dado de baja"
+            descripcion=f"Administrador {updated.nombre} {updated.correo} dado de baja"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        
-        return self.repository.update(administrador)
+        return updated
 
     def alta_logic(self, administrador_id: int, current_admin_id: int):
         administrador = self.get_by_id(administrador_id)
         administrador.estado = "ACTIVO"
+        updated = self.repository.update(administrador)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.ADMINISTRADOR,
-            descripcion=f"Administrador {administrador.nombre} {administrador.correo} dado de alta"
+            descripcion=f"Administrador {updated.nombre} {updated.correo} dado de alta"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        return self.repository.update(administrador)
+        return updated
 
     def _validate_password(self, contrasena: str):
         if len(contrasena) < 8:

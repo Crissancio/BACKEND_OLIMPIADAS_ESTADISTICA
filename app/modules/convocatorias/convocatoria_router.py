@@ -49,7 +49,7 @@ def crear_convocatoria(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = ConvocatoriaService(db)
-    convocatoria_dict = service.create(data)
+    convocatoria_dict = service.create(data, current_admin_id)
     return ResponseBase(data=convocatoria_dict, message="Convocatoria creada exitosamente en borrador")
 
 
@@ -61,7 +61,7 @@ def actualizar_convocatoria(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = ConvocatoriaService(db)
-    convocatoria_dict = service.update(convocatoria_id, data)
+    convocatoria_dict = service.update(convocatoria_id, data, current_admin_id)
     return ResponseBase(data=convocatoria_dict, message="Convocatoria actualizada exitosamente")
 
 
@@ -72,7 +72,7 @@ def publicar_convocatoria(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ConvocatoriaService(db)
-    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.PUBLICADA)
+    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.PUBLICADA, current_admin_id)
     return ResponseBase(data=convocatoria_dict, message="Convocatoria publicada exitosamente")
 
 
@@ -83,7 +83,7 @@ def ocultar_convocatoria(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ConvocatoriaService(db)
-    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.OCULTA)
+    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.OCULTA, current_admin_id)
     return ResponseBase(data=convocatoria_dict, message="Convocatoria ocultada exitosamente")
 
 
@@ -94,7 +94,7 @@ def cancelar_convocatoria(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ConvocatoriaService(db)
-    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.CANCELADA)
+    convocatoria_dict = service.cambiar_estado(convocatoria_id, EstadoConvocatoria.CANCELADA, current_admin_id)
     return ResponseBase(data=convocatoria_dict, message="Convocatoria cancelada exitosamente")
 
 @router.delete("/{convocatoria_id}", response_model=ResponseBase[dict])
@@ -104,5 +104,5 @@ def eliminar_convocatoria_fisica(
     current_admin_id: int = Depends(get_current_admin)
 ):
     service = ConvocatoriaService(db)
-    resultado = service.delete(convocatoria_id)
+    resultado = service.delete(convocatoria_id, current_admin_id)
     return ResponseBase(data=resultado, message="Convocatoria eliminada físicamente del sistema")

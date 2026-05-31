@@ -7,6 +7,8 @@ from app.modules.estudiantes.estudiante_repository import EstudianteRepository
 from app.modules.estudiantes.estudiante_schema import EstudianteCreateDTO, EstudianteUpdateDTO, EstudianteEstadoUpdateDTO
 from app.modules.estudiantes.estudiante_model import EstudianteModel
 from app.modules.personas.persona_model import PersonaModel
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -15,8 +17,9 @@ class EstudianteService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = EstudianteRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
-    def crear_estudiante(self, data: EstudianteCreateDTO):
+    def crear_estudiante(self, data: EstudianteCreateDTO, current_admin_id: int):
         try:
             persona = PersonaModel(
                 nombres=data.nombres,
@@ -38,6 +41,12 @@ class EstudianteService:
             )
             self.repository.create_estudiante(estudiante)
             self.db.commit()
+            self.db.refresh(estudiante)
+            self._auditar(
+                current_admin_id,
+                TipoAccion.CREAR,
+                f"Estudiante creado {persona.nombres} {persona.paterno} CI {estudiante.carnet_identidad}",
+            )
             return estudiante
         except Exception:
             self.db.rollback()
@@ -54,7 +63,7 @@ class EstudianteService:
             raise NotFoundError("Estudiante no encontrado")
         return estudiante
 
-    def actualizar_estudiante(self, estudiante_id: int, data: EstudianteUpdateDTO):
+    def actualizar_estudiante(self, estudiante_id: int, data: EstudianteUpdateDTO, current_admin_id: int):
         estudiante = self.obtener_por_id(estudiante_id)
         persona = self.repository.get_persona_by_id(estudiante_id)
         
@@ -70,14 +79,25 @@ class EstudianteService:
 
         self.repository.update()
         self.db.refresh(estudiante)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Estudiante actualizado {persona.nombres} {persona.paterno} CI {estudiante.carnet_identidad}",
+        )
         return estudiante
 
-    def cambiar_estado(self, estudiante_id: int, data: EstudianteEstadoUpdateDTO):
+    def cambiar_estado(self, estudiante_id: int, data: EstudianteEstadoUpdateDTO, current_admin_id: int):
         estudiante = self.obtener_por_id(estudiante_id)
         persona = self.repository.get_persona_by_id(estudiante_id)
+        estado_anterior = persona.estado
         persona.estado = data.estado
         self.repository.update()
         self.db.refresh(estudiante)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            f"Estudiante {persona.nombres} {persona.paterno} CI {estudiante.carnet_identidad} cambio estado de {estado_anterior} a {data.estado}",
+        )
         return estudiante
 
     def exportar_csv(self, ids: list[int]) -> str:
@@ -143,3 +163,13 @@ class EstudianteService:
         elements.append(table)
         doc.build(elements)
         return buffer.getvalue()
+
+    def _auditar(self, current_admin_id: int, accion: TipoAccion, descripcion: str):
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=TipoModulo.ESTUDIANTE,
+                descripcion=descripcion,
+            )
+        )

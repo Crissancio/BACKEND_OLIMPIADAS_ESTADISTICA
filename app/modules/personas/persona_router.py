@@ -34,7 +34,7 @@ def crear_director(
     current_admin_id: int = Depends(get_current_admin),
 ):
     service = PersonaService(db)
-    director = service.create_director(data)
+    director = service.create_director(data, current_admin_id)
     return ResponseBase(data=director, message="Operacion exitosa")
 
 @router.get("/directores/lista-corta", response_model=ResponseBase[list[DirectorMinifiedDTO]])
@@ -53,25 +53,25 @@ def obtener_director(director_id: int, db: Session = Depends(get_db), current_ad
 @router.put("/directores/{director_id}", response_model=ResponseBase[DirectorResponseDTO])
 def actualizar_director(director_id: int, data: DirectorUpdateDTO, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = PersonaService(db)
-    director = service.update_director(director_id, data)
+    director = service.update_director(director_id, data, current_admin_id)
     return ResponseBase(data=director, message="Director actualizado correctamente")
 
 @router.patch("/directores/{director_id}/baja", response_model=ResponseBase[DirectorResponseDTO])
 def baja_logica_director(director_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = PersonaService(db)
-    director = service.delete_director_logic(director_id)
+    director = service.delete_director_logic(director_id, current_admin_id)
     return ResponseBase(data=director, message="Director dado de baja lógicamente")
 
 @router.delete("/directores/{director_id}", response_model=ResponseBase[dict])
 def eliminar_director_total(director_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = PersonaService(db)
-    service.delete_director_total(director_id)
+    service.delete_director_total(director_id, current_admin_id)
     return ResponseBase(data={}, message="Director eliminado permanentemente")
 
 @router.patch("/directores/{director_id}/alta", response_model=ResponseBase[DirectorResponseDTO])
 def alta_logica_director(director_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = PersonaService(db)
-    director = service.alta_director_logic(director_id)
+    director = service.alta_director_logic(director_id, current_admin_id)
     return ResponseBase(data=director, message="Director dado de alta logicamente")
 @router.get("/colaboradores", response_model=PaginatedResponse[ColaboradorResponseDTO])
 def listar_colaboradores(
@@ -133,7 +133,7 @@ def crear_colaborador(
         presentacion=presentacion
     )
     service = PersonaService(db)
-    colaborador = service.create_colaborador(data, perfil)
+    colaborador = service.create_colaborador(data, perfil, admin)
     return ResponseBase(
         data=service._format_response(colaborador),
         message="Colaborador creado exitosamente"
@@ -163,7 +163,7 @@ def actualizar_colaborador(
         presentacion=presentacion
     )
     service = PersonaService(db)
-    colaborador = service.update_colaborador(id, data, perfil)
+    colaborador = service.update_colaborador(id, data, perfil, admin)
     return ResponseBase(
         data=service._format_response(colaborador),
         message="Colaborador actualizado correctamente"
@@ -176,7 +176,7 @@ def baja_colaborador(
     admin=Depends(get_current_admin)
 ):
     service = PersonaService(db)
-    service.delete_logic(id)
+    service.delete_logic(id, admin)
     return ResponseBase(
         data={}, 
         message="Colaborador desactivado correctamente"
@@ -189,7 +189,7 @@ def alta_colaborador(
     admin=Depends(get_current_admin)
 ):
     service = PersonaService(db)
-    service.activate_logic(id)
+    service.activate_logic(id, admin)
     return ResponseBase(
         data={}, 
         message="Colaborador activado correctamente"
@@ -202,7 +202,7 @@ def eliminar_colaborador(
     admin=Depends(get_current_admin)
 ):
     service = PersonaService(db)
-    service.delete_physical(id)
+    service.delete_physical(id, admin)
     return ResponseBase(
         data={}, 
         message="Colaborador y archivos eliminados permanentemente"

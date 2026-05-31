@@ -51,15 +51,15 @@ class CategoriaService:
             estado=EstadoEntidad.BORRADOR
         )
         
+        created = self.repository.create(nueva_categoria)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.CREAR,
             modulo=TipoModulo.CATEGORIA,
-            descripcion=f"Categoría creada {nueva_categoria.nombre_categoria} | curso: {nueva_categoria.curso}, nivel: {nueva_categoria.nivel}"
+            descripcion=f"Categoría creada {created.nombre_categoria} | curso: {created.curso}, nivel: {created.nivel}"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        
-        return self.repository.create(nueva_categoria)
+        return created
 
     def update(self, categoria_id: int, data: CategoriaUpdateDTO, current_admin_id: int):
         categoria = self.get_by_id(categoria_id)
@@ -78,15 +78,15 @@ class CategoriaService:
         for key, value in updates.items():
             setattr(categoria, key, value)
 
+        updated = self.repository.update(categoria)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.CATEGORIA,
-            descripcion=f"Categoría actualizada {categoria.nombre_categoria} | curso: {categoria.curso}, nivel: {categoria.nivel}"
+            descripcion=f"Categoría actualizada {updated.nombre_categoria} | curso: {updated.curso}, nivel: {updated.nivel}"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-
-        return self.repository.update(categoria)
+        return updated
 
     def cambiar_estado(self, categoria_id: int, data: CategoriaEstadoUpdateDTO, current_admin_id: int):
         categoria = self.get_by_id(categoria_id)
@@ -110,14 +110,15 @@ class CategoriaService:
             raise BusinessRuleError("De ELIMINADA solo se puede restaurar a LISTA.")
 
         categoria.estado = nuevo_estado
+        updated = self.repository.update(categoria)
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ACTUALIZAR,
             modulo=TipoModulo.CATEGORIA,
-            descripcion=f"Categoría actualizada {categoria.nombre_categoria} | curso: {categoria.curso}, nivel: {categoria.nivel} | estado: {estado_actual} a {nuevo_estado}"
+            descripcion=f"Categoría actualizada {updated.nombre_categoria} | curso: {updated.curso}, nivel: {updated.nivel} | estado: {estado_actual} a {nuevo_estado}"
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
-        return self.repository.update(categoria)
+        return updated
 
     def delete(self, categoria_id: int, current_admin_id: int):
         categoria = self.get_by_id(categoria_id)
@@ -127,13 +128,14 @@ class CategoriaService:
 
         if hasattr(categoria, "inscripciones") and len(categoria.inscripciones) > 0:
             raise BusinessRuleError("No se puede eliminar físicamente una categoría que tenga inscripciones registradas.")
+        descripcion = f"Categoría eliminada {categoria.nombre_categoria} | curso: {categoria.curso}, nivel: {categoria.nivel}"
         self.repository.delete(categoria)
         
         auditoria_registro = AuditoriaModel(
             id_administrador=current_admin_id,
             accion=TipoAccion.ELIMINAR,
             modulo=TipoModulo.CATEGORIA,
-            descripcion=f"Categoría eliminada {categoria.nombre_categoria} | curso: {categoria.curso}, nivel: {categoria.nivel}"
+            descripcion=descripcion
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
         return categoria

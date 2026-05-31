@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.modules.resultados.resultado_model import EstadoResultado, ResultadoModel
 from app.modules.resultados.resultado_repository import ResultadoRepository
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 from .constants import ANALYSIS_DIR, ERRORS_DIR
 from .schemas import AnalisisImportacionResponseDTO, ConfirmarImportacionDTO
 from .parser import parse_csv_file
@@ -20,6 +22,7 @@ os.makedirs(ERRORS_DIR, exist_ok=True)
 class CSVImportService:
     def __init__(self, db: Session):
         self.repository = ResultadoRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     async def analizar_csv(self, id_fase_prueba: int, file: UploadFile) -> AnalisisImportacionResponseDTO:
         id_categoria, dict_inscripciones, dict_resultados = self.repository.get_contexto_importacion(id_fase_prueba)
@@ -69,7 +72,7 @@ class CSVImportService:
             archivo_errores=archivo_errores_nombre
         )
 
-    def procesar_importacion(self, id_fase_prueba: int, payload: ConfirmarImportacionDTO) -> dict:
+    def procesar_importacion(self, id_fase_prueba: int, payload: ConfirmarImportacionDTO, current_admin_id: int):
         ruta_analisis = os.path.join(ANALYSIS_DIR, payload.token)
         if not os.path.exists(ruta_analisis):
             raise NotFoundError("Token de análisis caducado o inválido.")
@@ -114,6 +117,15 @@ class CSVImportService:
                 self.repository.bulk_update()
 
         os.remove(ruta_analisis)
+        if nuevos or actualizados_count > 0:
+            self.sistema_repository.create_auditoria(
+                AuditoriaModel(
+                    id_administrador=current_admin_id,
+                    accion=TipoAccion.CREAR if nuevos else TipoAccion.ACTUALIZAR,
+                    modulo=TipoModulo.RESULTADO,
+                    descripcion=f"Importacion CSV de resultados en fase {id_fase_prueba}: {len(nuevos)} nuevos, {actualizados_count} actualizados",
+                )
+            )
 
         return {
             "nuevos_creados": len(nuevos),

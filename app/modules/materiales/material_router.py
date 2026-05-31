@@ -72,7 +72,7 @@ def obtener_material(id_material: int, db: Session = Depends(get_db)):
 @router.post("/externo", response_model=ResponseBase[MaterialResponseDTO])
 def crear_externo(data: MaterialExternoCreateDTO, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.create_externo(data), message="Material externo creado")
+    return ResponseBase(data=service.create_externo(data, admin), message="Material externo creado")
 
 
 @router.post("/archivo", response_model=ResponseBase[MaterialResponseDTO])
@@ -86,7 +86,7 @@ def crear_archivo(
     admin=Depends(get_current_admin)
 ):
     service = MaterialService(db)
-    resultado = service.create_archivo(nombre_material, descripcion, tipo_material, fecha_publicacion, file)
+    resultado = service.create_archivo(nombre_material, descripcion, tipo_material, fecha_publicacion, file, admin)
     return ResponseBase(data=resultado, message="Material de archivo creado")
 
 
@@ -101,53 +101,53 @@ def crear_principal(
     admin=Depends(get_current_admin)
 ):
     service = MaterialService(db)
-    resultado = service.create_principal(id_convocatoria, tipo_material, nombre_material, descripcion, file)
+    resultado = service.create_principal(id_convocatoria, tipo_material, nombre_material, descripcion, file, admin)
     return ResponseBase(data=resultado, message="Material principal creado y vinculado")
 
 
 @router.put("/{id_material}", response_model=ResponseBase[MaterialResponseDTO])
 def actualizar_material(id_material: int, data: MaterialUpdateDTO, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.update(id_material, data), message="Material actualizado")
+    return ResponseBase(data=service.update(id_material, data, admin), message="Material actualizado")
 
 
 @router.put("/{id_material}/publicar", response_model=ResponseBase[MaterialResponseDTO])
 def publicar_material(id_material: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.cambiar_estado(id_material, EstadoMaterial.PUBLICO), message="Material publicado")
+    return ResponseBase(data=service.cambiar_estado(id_material, EstadoMaterial.PUBLICO, admin), message="Material publicado")
 
 
 @router.put("/{id_material}/ocultar", response_model=ResponseBase[MaterialResponseDTO])
 def ocultar_material(id_material: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.cambiar_estado(id_material, EstadoMaterial.OCULTO), message="Material ocultado")
+    return ResponseBase(data=service.cambiar_estado(id_material, EstadoMaterial.OCULTO, admin), message="Material ocultado")
 
 
 @router.post("/{id_material}/convocatoria/{id_convocatoria}", response_model=ResponseBase[dict])
 def ligar_convocatoria(id_material: int, id_convocatoria: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.link_convocatoria(id_material, id_convocatoria), message="Enlazado a convocatoria")
+    return ResponseBase(data=service.link_convocatoria(id_material, id_convocatoria, admin), message="Enlazado a convocatoria")
 
 
 @router.delete("/{id_material}/convocatoria/{id_convocatoria}", response_model=ResponseBase[dict])
 def desligar_convocatoria(id_material: int, id_convocatoria: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.unlink_convocatoria(id_material, id_convocatoria), message="Desligado de convocatoria")
+    return ResponseBase(data=service.unlink_convocatoria(id_material, id_convocatoria, admin), message="Desligado de convocatoria")
 
 
 @router.post("/{id_material}/fase/{id_fase}", response_model=ResponseBase[dict])
 def ligar_fase(id_material: int, id_fase: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.link_fase(id_material, id_fase), message="Enlazado a fase")
+    return ResponseBase(data=service.link_fase(id_material, id_fase, admin), message="Enlazado a fase")
 
 
 @router.delete("/{id_material}/fase/{id_fase}", response_model=ResponseBase[dict])
 def desligar_fase(id_material: int, id_fase: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.unlink_fase(id_material, id_fase), message="Desligado de fase")
+    return ResponseBase(data=service.unlink_fase(id_material, id_fase, admin), message="Desligado de fase")
 
 
 @router.delete("/{id_material}", response_model=ResponseBase[dict])
 def eliminar_material(id_material: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     service = MaterialService(db)
-    return ResponseBase(data=service.delete(id_material), message="Material eliminado")
+    return ResponseBase(data=service.delete(id_material, admin), message="Material eliminado")

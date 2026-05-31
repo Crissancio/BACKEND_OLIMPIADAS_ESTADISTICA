@@ -15,12 +15,15 @@ from app.modules.personas.persona_schema import (
 )
 from app.core.supabase_storage import SupabaseStorageClient
 from app.core.exceptions import BusinessRuleError
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 class PersonaService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = PersonaRepository(db)
         self.storage = SupabaseStorageClient()
+        self.sistema_repository = SistemaRepository(db)
     
     def list_directores(self, page: int, limit: int):
         skip = (page - 1) * limit
@@ -101,7 +104,7 @@ class PersonaService:
         ]
         return items, total
     
-    def create_director(self, data: DirectorCreateDTO):
+    def create_director(self, data: DirectorCreateDTO, current_admin_id: int):
         try:
             persona = PersonaModel(
                 nombres=data.nombres,
@@ -119,6 +122,12 @@ class PersonaService:
             self.repository.create_director(director)
             
             self.db.commit()
+            self._auditar(
+                current_admin_id,
+                TipoAccion.CREAR,
+                TipoModulo.DIRECTOR,
+                f"Director creado {persona.nombres} {persona.paterno}",
+            )
             
             return {
                 "id_director": director.id_director,
@@ -145,7 +154,7 @@ class PersonaService:
             raise NotFoundError("Director no encontrado")
         return row
 
-    def update_director(self, director_id: int, data: DirectorUpdateDTO):
+    def update_director(self, director_id: int, data: DirectorUpdateDTO, current_admin_id: int):
         director, persona = self.get_director_by_id(director_id)
 
         if data.nombres is not None: persona.nombres = data.nombres
@@ -158,22 +167,42 @@ class PersonaService:
         if data.telefono_2 is not None: director.telefono_2 = data.telefono_2
 
         self.repository.update_director(director, persona)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            TipoModulo.DIRECTOR,
+            f"Director actualizado {persona.nombres} {persona.paterno}",
+        )
         return self._format_director_response(director, persona)
 
-    def delete_director_logic(self, director_id: int):
+    def delete_director_logic(self, director_id: int, current_admin_id: int):
         director, persona = self.get_director_by_id(director_id)
         persona.estado = "INACTIVO" 
         self.repository.update_director(director, persona)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            TipoModulo.DIRECTOR,
+            f"Director dado de baja {persona.nombres} {persona.paterno}",
+        )
         return self._format_director_response(director, persona)
 
-    def delete_director_total(self, director_id: int):
+    def delete_director_total(self, director_id: int, current_admin_id: int):
         director, persona = self.get_director_by_id(director_id)
+        descripcion = f"Director eliminado {persona.nombres} {persona.paterno}"
         self.repository.delete_director_total(director, persona)
+        self._auditar(current_admin_id, TipoAccion.ELIMINAR, TipoModulo.DIRECTOR, descripcion)
 
-    def alta_director_logic(self, director_id: int):
+    def alta_director_logic(self, director_id: int, current_admin_id: int):
         director, persona = self.get_director_by_id(director_id)
         persona.estado = "ACTIVO"
         self.repository.update_director(director, persona)
+        self._auditar(
+            current_admin_id,
+            TipoAccion.ACTUALIZAR,
+            TipoModulo.DIRECTOR,
+            f"Director dado de alta {persona.nombres} {persona.paterno}",
+        )
         return self._format_director_response(director, persona)
 
     def list_directores_minified(self):
@@ -198,7 +227,7 @@ class PersonaService:
             "telefono_2": director.telefono_2,
         }
     
-    def create_colaborador(self, data: ColaboradorCreateDTO, perfil_file: UploadFile | None = None):
+    def create_colaborador(self, data: ColaboradorCreateDTO, perfil_file: UploadFile | None = None, current_admin_id: int | None = None):
         perfil_url = None
         if perfil_file:
             content = perfil_file.file.read()
@@ -216,9 +245,17 @@ class PersonaService:
             tipo=data.tipo,
             correo=data.correo
         )
-        return self.repository.create_colaborador(persona, colaborador)
+        created = self.repository.create_colaborador(persona, colaborador)
+        if current_admin_id is not None:
+            self._auditar(
+                current_admin_id,
+                TipoAccion.CREAR,
+                TipoModulo.COLABORADOR,
+                f"Colaborador creado {persona.nombres} {persona.paterno} tipo {colaborador.tipo}",
+            )
+        return created
 
-    def update_colaborador(self, colaborador_id: int, data: ColaboradorUpdateDTO, perfil_file: UploadFile | None = None):
+    def update_colaborador(self, colaborador_id: int, data: ColaboradorUpdateDTO, perfil_file: UploadFile | None = None, current_admin_id: int | None = None):
         colaborador = self.repository.get_colaborador_by_id(colaborador_id)
         if not colaborador:
             raise BusinessRuleError("Colaborador no encontrado")
@@ -237,31 +274,55 @@ class PersonaService:
                 setattr(colaborador.persona, key, value)
         
         self.repository.update_colaborador()
+        if current_admin_id is not None:
+            self._auditar(
+                current_admin_id,
+                TipoAccion.ACTUALIZAR,
+                TipoModulo.COLABORADOR,
+                f"Colaborador actualizado {colaborador.persona.nombres} {colaborador.persona.paterno} tipo {colaborador.tipo}",
+            )
         return colaborador
 
-    def delete_logic(self, colaborador_id: int):
+    def delete_logic(self, colaborador_id: int, current_admin_id: int | None = None):
         colaborador = self.repository.get_colaborador_by_id(colaborador_id)
         if not colaborador:
             raise BusinessRuleError("Colaborador no encontrado")
         colaborador.persona.estado = "INACTIVO"
         self.repository.update_colaborador()
+        if current_admin_id is not None:
+            self._auditar(
+                current_admin_id,
+                TipoAccion.ACTUALIZAR,
+                TipoModulo.COLABORADOR,
+                f"Colaborador dado de baja {colaborador.persona.nombres} {colaborador.persona.paterno}",
+            )
         return colaborador
 
-    def activate_logic(self, colaborador_id: int):
+    def activate_logic(self, colaborador_id: int, current_admin_id: int | None = None):
         colaborador = self.repository.get_colaborador_by_id(colaborador_id)
         if not colaborador:
             raise BusinessRuleError("Colaborador no encontrado")
         colaborador.persona.estado = "ACTIVO"
         self.repository.update_colaborador()
+        if current_admin_id is not None:
+            self._auditar(
+                current_admin_id,
+                TipoAccion.ACTUALIZAR,
+                TipoModulo.COLABORADOR,
+                f"Colaborador dado de alta {colaborador.persona.nombres} {colaborador.persona.paterno}",
+            )
         return colaborador
 
-    def delete_physical(self, colaborador_id: int):
+    def delete_physical(self, colaborador_id: int, current_admin_id: int | None = None):
         colaborador = self.repository.get_colaborador_by_id(colaborador_id)
         if not colaborador:
             raise BusinessRuleError("Colaborador no encontrado")
         if colaborador.perfil:
             self.storage.delete_file(colaborador.perfil)
+        descripcion = f"Colaborador eliminado {colaborador.persona.nombres} {colaborador.persona.paterno}"
         self.repository.delete_colaborador_physical(colaborador, colaborador.persona)
+        if current_admin_id is not None:
+            self._auditar(current_admin_id, TipoAccion.ELIMINAR, TipoModulo.COLABORADOR, descripcion)
 
     def get_colaborador_by_id(self, colaborador_id: int):
         colaborador = self.repository.get_colaborador_by_id(colaborador_id)
@@ -287,3 +348,13 @@ class PersonaService:
             "correo": c.correo,
             "estado": c.persona.estado if c.persona else "ACTIVO"
         }
+
+    def _auditar(self, current_admin_id: int, accion: TipoAccion, modulo: TipoModulo, descripcion: str):
+        self.sistema_repository.create_auditoria(
+            AuditoriaModel(
+                id_administrador=current_admin_id,
+                accion=accion,
+                modulo=modulo,
+                descripcion=descripcion,
+            )
+        )

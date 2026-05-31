@@ -20,10 +20,6 @@ class EstudianteModel(Base):
     email_logs = relationship("EmailLog", back_populates="estudiante")
 
     @property
-    def correo(self):
-        return self.persona.correo if self.persona else None
-
-    @property
     def nombres(self):
         return self.persona.nombres if self.persona else "Sin nombre"
 
