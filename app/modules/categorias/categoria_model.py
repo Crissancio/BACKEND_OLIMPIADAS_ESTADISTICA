@@ -28,3 +28,4 @@ class CategoriaModel(Base):
 
     fases = relationship("FaseModel", back_populates="categoria", cascade="all, delete")
     inscripciones = relationship("InscripcionModel", back_populates="categoria")
+    convocatoria = relationship("ConvocatoriaModel", back_populates="categorias")
