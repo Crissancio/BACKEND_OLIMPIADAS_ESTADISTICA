@@ -5,12 +5,15 @@ from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.modules.convocatorias.convocatoria_model import ConvocatoriaModel, EstadoConvocatoria, EstadoTemporal
 from app.modules.convocatorias.convocatoria_repository import ConvocatoriaRepository
 from app.modules.convocatorias.convocatoria_schema import ConvocatoriaCreateDTO, ConvocatoriaUpdateDTO
-
+# al inicio de convocatoria_service.py, agregá:
+from app.modules.materiales.material_repository import MaterialRepository
+from app.modules.materiales.material_model import EstadoMaterial, TipoMaterialEnum
 
 class ConvocatoriaService:
     def __init__(self, db: Session):
         self.repository = ConvocatoriaRepository(db)
-
+        self.material_repo = MaterialRepository(db)
+        
     def calculate_estado_temporal(self, convocatoria: ConvocatoriaModel) -> EstadoTemporal:
         if convocatoria.estado == EstadoConvocatoria.OCULTA:
             return EstadoTemporal.OCULTA
@@ -168,11 +171,16 @@ class ConvocatoriaService:
             if estado_actual not in [EstadoConvocatoria.BORRADOR, EstadoConvocatoria.OCULTA]:
                 raise BusinessRuleError(f"No se puede publicar desde {estado_actual.value}.")
             
-            if not all([convocatoria.inicio_olimpiadas, convocatoria.fin_olimpiadas, convocatoria.fecha_inicio_inscripcion, convocatoria.fecha_fin_inscripcion, convocatoria.monto_inscripcion]):
+            if not all([convocatoria.inicio_olimpiadas, convocatoria.fin_olimpiadas,
+                        convocatoria.fecha_inicio_inscripcion, convocatoria.fecha_fin_inscripcion,
+                        convocatoria.monto_inscripcion]):
                 raise BusinessRuleError("Para publicar, todos los campos de fechas y monto deben estar completos.")
             
-            if self.repository.check_overlap_fechas(convocatoria.inicio_olimpiadas, convocatoria.fin_olimpiadas, exclude_id=convocatoria.id_convocatoria):
-                raise BusinessRuleError("No se puede publicar porque las fechas se superponen con otra convocatoria PUBLICADA activa.")
+            existente = self.repository.get_publicada(exclude_id=convocatoria.id_convocatoria)
+            if existente:
+                raise BusinessRuleError("Ya existe otra convocatoria en estado PUBLICADA. Solo puede haber una a la vez.")
+            
+            self._validar_materiales_principales(convocatoria.id_convocatoria)
 
         if nuevo_estado in [EstadoConvocatoria.CANCELADA, EstadoConvocatoria.OCULTA]:
             if estado_actual != EstadoConvocatoria.PUBLICADA:
@@ -192,3 +200,16 @@ class ConvocatoriaService:
 
         self.repository.delete(convocatoria)
         return {"id_convocatoria": convocatoria_id}
+    
+    def _validar_materiales_principales(self, convocatoria_id: int):
+        tipos = [TipoMaterialEnum.AFICHE, TipoMaterialEnum.CONVOCATORIA, TipoMaterialEnum.REGLAMENTO]
+        faltantes = []
+        for tipo in tipos:
+            material = self.material_repo.get_material_principal(convocatoria_id, tipo)
+            if not material or material.estado != EstadoMaterial.PUBLICO:
+                faltantes.append(tipo.value)
+        if faltantes:
+            raise BusinessRuleError(
+                f"Faltan los siguientes materiales principales (o no están en estado PUBLICO): {', '.join(faltantes)}"
+            )
+            

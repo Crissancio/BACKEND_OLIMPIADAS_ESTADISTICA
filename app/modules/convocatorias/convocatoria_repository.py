@@ -38,6 +38,14 @@ class ConvocatoriaRepository:
         items = query.offset(skip).limit(limit).all()
         return items, total
 
+    def get_publicada(self, exclude_id: Optional[int] = None):
+        query = self.db.query(ConvocatoriaModel).filter(
+            ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA
+        )
+        if exclude_id is not None:
+            query = query.filter(ConvocatoriaModel.id_convocatoria != exclude_id)
+        return query.first()
+    
     def check_overlap_fechas(self, inicio: date, fin: date, exclude_id: Optional[int] = None):
         query = self.db.query(ConvocatoriaModel).filter(
             ConvocatoriaModel.estado == EstadoConvocatoria.PUBLICADA,
