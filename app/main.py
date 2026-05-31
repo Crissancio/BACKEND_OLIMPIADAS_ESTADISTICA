@@ -26,6 +26,7 @@ from app.modules.resultados.resultado_router import router as resultados_router
 import logging
 from app.core.config import settings
 from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
+from app.modules.sistema.sistema_router import router as sistema_router
 
 logging.basicConfig(
     level=settings.log_level,
@@ -91,6 +92,7 @@ app.include_router(public_router)
 app.include_router(campanias_router)
 app.include_router(email_logs_router)
 app.include_router(resultados_router)
+app.include_router(sistema_router)
 
 @app.get("/")
 def root():

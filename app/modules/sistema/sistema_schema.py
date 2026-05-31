@@ -75,3 +75,10 @@ class ActividadRecienteDTO(BaseModel):
     tipo_actividad: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class EventoProximoDTO(BaseModel):
+    tipo: str
+    titulo: str
+    descripcion: str | None = None
+    fecha: datetime
+    referencia_id: int

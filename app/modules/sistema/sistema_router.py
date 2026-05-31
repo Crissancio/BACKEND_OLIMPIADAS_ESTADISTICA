@@ -11,7 +11,8 @@ from app.modules.sistema.sistema_schema import (
     AuditoriaResponseDTO,
     ActividadSistemaResponseDTO,
     AdminDashboardResponseDTO,
-    ActividadRecienteDTO
+    ActividadRecienteDTO,
+    EventoProximoDTO
 )
 from app.modules.sistema.sistema_service import SistemaService
 
@@ -100,3 +101,15 @@ def obtener_actividad_reciente(
     data = PaginatedData(items=items, meta=meta)
     
     return PaginatedResponse(data=data, message="Feed de actividad reciente obtenido correctamente")
+
+@router.get(
+    "/eventos-proximos",
+    response_model=list[EventoProximoDTO]
+)
+def get_eventos_proximos(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    admin = Depends(get_current_admin)
+):
+    service = SistemaService(db)
+    return service.get_eventos_proximos(limit)

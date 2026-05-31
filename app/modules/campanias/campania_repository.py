@@ -45,3 +45,13 @@ class CampaniaRepository:
         if campania:
             self.db.delete(campania)
             self.db.commit()
+
+    def get_programadas_futuras(self):
+        return (
+            self.db.query(CampaniaEmail)
+            .filter(
+                CampaniaEmail.estado == EstadoCampania.PROGRAMADA,
+                CampaniaEmail.fecha_programada >= datetime.now()
+            )
+            .all()
+        )

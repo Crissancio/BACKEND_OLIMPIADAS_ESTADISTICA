@@ -11,7 +11,8 @@ from app.modules.convocatorias.convocatoria_repository import ConvocatoriaReposi
 from app.modules.inscripciones.inscripcion_repository import InscripcionRepository
 from app.modules.avisos.aviso_repository import AvisoRepository
 from app.modules.auth.auth_model import AdministradorModel
-
+from app.modules.fases.fase_repository import FaseRepository
+from app.modules.campanias.campania_repository import CampaniaRepository
 
 class SistemaService:
     def __init__(self, db: Session):
@@ -127,3 +128,117 @@ class SistemaService:
             })
             
         return mapped_items, total
+
+    def get_eventos_proximos(self, limit: int = 10):
+
+        now = datetime.now()
+        eventos = []
+
+        conv_repo = ConvocatoriaRepository(self.db)
+        fase_repo = FaseRepository(self.db)
+        campania_repo = CampaniaRepository(self.db)
+
+        convocatoria = conv_repo.get_convocatoria_principal()
+
+        if convocatoria:
+
+            if (
+                convocatoria.fecha_inicio_inscripcion
+                and convocatoria.fecha_inicio_inscripcion >= now
+            ):
+                eventos.append({
+                    "tipo": "INSCRIPCION",
+                    "titulo": "Inicio de inscripciones",
+                    "descripcion": convocatoria.nombre_convocatoria,
+                    "fecha": convocatoria.fecha_inicio_inscripcion,
+                    "referencia_id": convocatoria.id_convocatoria
+                })
+
+            if (
+                convocatoria.fecha_fin_inscripcion
+                and convocatoria.fecha_fin_inscripcion >= now
+            ):
+                eventos.append({
+                    "tipo": "INSCRIPCION",
+                    "titulo": "Cierre de inscripciones",
+                    "descripcion": convocatoria.nombre_convocatoria,
+                    "fecha": convocatoria.fecha_fin_inscripcion,
+                    "referencia_id": convocatoria.id_convocatoria
+                })
+
+            if (
+                convocatoria.inicio_olimpiadas
+                and convocatoria.inicio_olimpiadas >= now.date()
+            ):
+                eventos.append({
+                    "tipo": "CONVOCATORIA",
+                    "titulo": "Inicio de Olimpiadas",
+                    "descripcion": convocatoria.nombre_convocatoria,
+                    "fecha": datetime.combine(
+                        convocatoria.inicio_olimpiadas,
+                        datetime.min.time()
+                    ),
+                    "referencia_id": convocatoria.id_convocatoria
+                })
+
+            if (
+                convocatoria.fin_olimpiadas
+                and convocatoria.fin_olimpiadas >= now.date()
+            ):
+                eventos.append({
+                    "tipo": "CONVOCATORIA",
+                    "titulo": "Fin de Olimpiadas",
+                    "descripcion": convocatoria.nombre_convocatoria,
+                    "fecha": datetime.combine(
+                        convocatoria.fin_olimpiadas,
+                        datetime.min.time()
+                    ),
+                    "referencia_id": convocatoria.id_convocatoria
+                })
+
+        fases_preparacion, fases_prueba = (fase_repo.get_fases_proximas())
+
+        for fase in fases_preparacion:
+
+            if fase.fecha_inicio >= now:
+                eventos.append({
+                    "tipo": "PREPARACION",
+                    "titulo": f"Inicio {fase.fase_base.nombre_fase}",
+                    "descripcion": "Fase de preparación",
+                    "fecha": fase.fecha_inicio,
+                    "referencia_id": fase.id_fase
+                })
+
+            if fase.fecha_fin >= now:
+                eventos.append({
+                    "tipo": "PREPARACION",
+                    "titulo": f"Fin {fase.fase_base.nombre_fase}",
+                    "descripcion": "Fase de preparación",
+                    "fecha": fase.fecha_fin,
+                    "referencia_id": fase.id_fase
+                })
+
+        for fase in fases_prueba:
+
+            eventos.append({
+                "tipo": "PRUEBA",
+                "titulo": fase.fase_base.nombre_fase,
+                "descripcion": fase.lugar_realizacion,
+                "fecha": fase.fecha_realizacion,
+                "referencia_id": fase.id_fase
+            })
+
+        campanias = campania_repo.get_programadas_futuras()
+
+        for campania in campanias:
+            eventos.append({
+                "tipo": "EMAIL",
+                "titulo": campania.nombre,
+                "descripcion": campania.asunto,
+                "fecha": campania.fecha_programada,
+                "referencia_id": campania.id_campania_email
+            })
+
+        eventos.sort(key=lambda evento: evento["fecha"])
+
+        return eventos[:limit]

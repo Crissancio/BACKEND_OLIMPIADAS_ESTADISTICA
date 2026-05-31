@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from app.modules.fases.fase_model import EstadoEntidad, FaseModel, FasePreparacionModel, FasePruebaModel
-
+from datetime import datetime
 class FaseRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -63,3 +63,21 @@ class FaseRepository:
         self.db.delete(entidad_model)
         self.db.commit()
         
+    def get_fases_proximas(self):
+        now = datetime.now()
+
+        fases_preparacion = (
+            self.db.query(FasePreparacionModel)
+            .options(joinedload(FasePreparacionModel.fase_base))
+            .filter(FasePreparacionModel.fecha_fin >= now)
+            .all()
+        )
+
+        fases_prueba = (
+            self.db.query(FasePruebaModel)
+            .options(joinedload(FasePruebaModel.fase_base))
+            .filter(FasePruebaModel.fecha_realizacion >= now)
+            .all()
+        )
+
+        return fases_preparacion, fases_prueba
