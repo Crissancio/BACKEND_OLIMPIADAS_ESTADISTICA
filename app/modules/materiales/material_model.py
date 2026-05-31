@@ -6,7 +6,6 @@ from app.db.database import Base
 
 
 class TipoMaterialEnum(str, enum.Enum):
-    PRINCIPAL = 'PRINCIPAL'
     EXAMEN = 'EXAMEN'
     SOLUCIONARIO = 'SOLUCIONARIO'
     EJERCICIOS = 'EJERCICIOS'
