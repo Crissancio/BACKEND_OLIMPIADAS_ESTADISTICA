@@ -6,12 +6,14 @@ from app.modules.auth.auth_repository import AuthRepository
 from app.modules.avisos.aviso_model import AvisoModel
 from app.modules.avisos.aviso_repository import AvisoRepository
 from app.modules.avisos.aviso_schema import AvisoCreateDTO, AvisoUpdateDTO, AvisoEstadoUpdateDTO, AvisoResponseDTO
-
+from app.modules.sistema.sistema_model import AuditoriaModel, TipoAccion, TipoModulo
+from app.modules.sistema.sistema_repository import SistemaRepository
 
 class AvisoService:
     def __init__(self, db: Session):
         self.repository = AvisoRepository(db)
         self.auth_repository = AuthRepository(db)
+        self.sistema_repository = SistemaRepository(db)
 
     def get_public_by_id(self, aviso_id: int):
         aviso = self.repository.get_public_by_id(aviso_id)
@@ -46,6 +48,15 @@ class AvisoService:
         aviso = AvisoModel(**data.model_dump())
         aviso.estado = "BORRADOR"
         created_aviso = self.repository.create(aviso)
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.CREAR,
+            modulo=TipoModulo.AVISO,
+            descripcion=f"Aviso creado {aviso.titulo} de tipo {aviso.tipo}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
+        
         return self._with_estado_temporal(created_aviso)
 
     def update(self, aviso_id: int, data: AvisoUpdateDTO, current_admin_id: int):
@@ -55,6 +66,14 @@ class AvisoService:
             setattr(aviso, key, value)
           
         updated_aviso = self.repository.update(aviso)
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ACTUALIZAR,
+            modulo=TipoModulo.AVISO,
+            descripcion=f"Aviso actualizado {aviso.titulo} de tipo {aviso.tipo}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return self._with_estado_temporal(updated_aviso)
 
     def cambiar_estado(
@@ -78,12 +97,29 @@ class AvisoService:
             )
         aviso.estado = nuevo_estado
         updated_aviso = self.repository.update(aviso)
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ACTUALIZAR,
+            modulo=TipoModulo.AVISO,
+            descripcion=f"Aviso cambio su estado de {estado_actual} a {nuevo_estado} {aviso.titulo} de tipo {aviso.tipo}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
         return self._with_estado_temporal(updated_aviso)
 
     def delete(self, aviso_id: int, current_admin_id: int):
         aviso = self._get_model_by_id(aviso_id)
         deleted = self._with_estado_temporal(aviso)
         self.repository.delete(aviso)
+        
+        auditoria_registro = AuditoriaModel(
+            id_administrador=current_admin_id,
+            accion=TipoAccion.ELIMINAR,
+            modulo=TipoModulo.AVISO,
+            descripcion=f"Aviso eliminado {aviso.titulo} de tipo {aviso.tipo}"
+        )
+        self.sistema_repository.create_auditoria(auditoria_registro)
+        
         return deleted
 
     def _with_estado_temporal(self, aviso: AvisoModel):
