@@ -7,8 +7,8 @@ from app.db.database import get_db
 from app.core.responses import PaginatedData, PaginatedResponse, PaginationMeta
 from app.core.dependencies import limiter
 from app.modules.personas.persona_model import TipoColaborador
+from app.modules.personas.persona_schema import PublicColaboradorResponseDTO
 from app.modules.personas.persona_service import PersonaService
-from app.modules.public_bff.public_schema import PublicColaboradorResponseDTO
 from app.modules.colegios.colegio_schema import ColegioPublicoMinifiedDTO
 from app.modules.colegios.colegio_service import ColegioService
 from app.core.responses import ResponseBase

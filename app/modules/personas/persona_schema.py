@@ -80,3 +80,14 @@ class DirectorUpdateDTO(BaseModel):
 class DirectorMinifiedDTO(BaseModel):
     id_director: int
     nombres_completos: str
+
+class PublicColaboradorResponseDTO(BaseModel):
+    nombres: str
+    paterno: str
+    materno: Optional[str]
+    perfil: Optional[str]
+    presentacion: Optional[str]
+    rol: str
+    correo: str
+
+    model_config = ConfigDict(from_attributes=True)
