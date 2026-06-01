@@ -72,3 +72,25 @@ class FaseMinifiedResponseDTO(BaseModel):
 
 
 FaseResponsePolymorphic = Union[FasePruebaResponseDTO, FasePreparacionResponseDTO]
+
+class FasePublicaBaseDTO(BaseModel):
+    id_fase: int
+    nombre_fase: str
+    descripcion: Optional[str] = None
+    modalidad: str
+    tipo_fase: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class FasePruebaPublicaDTO(FasePublicaBaseDTO):
+    tipo_fase: Literal["PRUEBA"]
+    fecha_realizacion: datetime
+    lugar_realizacion: Optional[str] = None
+    criterio_aprobacion: int
+
+class FasePreparacionPublicaDTO(FasePublicaBaseDTO):
+    tipo_fase: Literal["PREPARACION"]
+    fecha_inicio: datetime
+    fecha_fin: datetime
+
+FasePublicaDTO = Union[FasePruebaPublicaDTO, FasePreparacionPublicaDTO]

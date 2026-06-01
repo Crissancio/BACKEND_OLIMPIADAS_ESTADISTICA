@@ -102,3 +102,15 @@ class FaseRepository:
         )
 
         return fases_preparacion, fases_prueba
+    
+    def get_fases_publicas_by_categoria(self, categoria_id: int):
+        return (
+            self.get_base_query()
+            .filter(
+                FaseModel.id_categoria_fk == categoria_id,
+                FaseModel.estado == EstadoEntidad.LISTA
+            )
+            .all()
+        )
+    
+    

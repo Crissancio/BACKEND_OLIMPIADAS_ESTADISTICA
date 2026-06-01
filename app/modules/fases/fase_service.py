@@ -228,3 +228,15 @@ class FaseService:
                 descripcion=descripcion,
             )
         )
+    
+    def get_fases_publicas_by_categoria(self, categoria_id: int):
+        items = self.repository.get_fases_publicas_by_categoria(categoria_id)
+        mapped_items = [self._map_to_polymorphic(item) for item in items]
+        
+        def get_sort_date(fase):
+            if fase.get("tipo_fase") == "PRUEBA":
+                return fase.get("fecha_realizacion")
+            return fase.get("fecha_inicio")
+            
+        mapped_items.sort(key=get_sort_date)
+        return mapped_items

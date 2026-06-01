@@ -17,6 +17,8 @@ from app.modules.materiales.material_service import MaterialService
 from app.modules.materiales.material_schema import MaterialPublicoGeneralDTO, MaterialPublicoRelacionDTO
 from app.modules.resultados.resultado_service import ResultadoService
 from app.modules.resultados.resultado_schema import ResultadoPublicoGeneralDTO, ResultadoPublicoFaseDTO
+from app.modules.fases.fase_service import FaseService
+from app.modules.fases.fase_schema import FasePublicaDTO
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -136,3 +138,12 @@ def get_resultados_fase_public(
     service = ResultadoService(db)
     items = service.get_public_resultados_by_fase(id_fase)
     return ResponseBase(data=items, message="Resultados de la fase obtenidos correctamente")
+
+@router.get("/fases/{id_categoria}", response_model=ResponseBase[List[FasePublicaDTO]])
+def get_fases_publicas_categoria(
+    id_categoria: int,
+    db: Session = Depends(get_db)
+):
+    service = FaseService(db)
+    items = service.get_fases_publicas_by_categoria(id_categoria)
+    return ResponseBase(data=items, message="Fases públicas obtenidas correctamente")
