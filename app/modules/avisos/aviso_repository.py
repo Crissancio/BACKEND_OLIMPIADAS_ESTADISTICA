@@ -124,3 +124,20 @@ class AvisoRepository:
             )
             .scalar()
         )    
+
+    def get_avisos_publicos_minified(self, skip: int, limit: int):
+        return (
+            self.db.query(
+                AvisoModel.prioridad,
+                AvisoModel.titulo,
+                AvisoModel.descripcion,
+                AvisoModel.tipo
+            )
+            .filter(AvisoModel.estado == EstadoAviso.PUBLICADO)
+            .filter(AvisoModel.fecha_publicacion.isnot(None))
+            .filter(AvisoModel.fecha_publicacion <= datetime.utcnow())
+            .order_by(AvisoModel.fecha_publicacion.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )

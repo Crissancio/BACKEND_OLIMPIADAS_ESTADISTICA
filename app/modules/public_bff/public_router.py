@@ -19,6 +19,8 @@ from app.modules.resultados.resultado_service import ResultadoService
 from app.modules.resultados.resultado_schema import ResultadoPublicoGeneralDTO, ResultadoPublicoFaseDTO
 from app.modules.fases.fase_service import FaseService
 from app.modules.fases.fase_schema import FasePublicaDTO
+from app.modules.avisos.aviso_service import AvisoService
+from app.modules.avisos.aviso_schema import AvisoPublicoDTO
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -147,3 +149,22 @@ def get_fases_publicas_categoria(
     service = FaseService(db)
     items = service.get_fases_publicas_by_categoria(id_categoria)
     return ResponseBase(data=items, message="Fases públicas obtenidas correctamente")
+
+@router.get("/avisos-publicos", response_model=PaginatedResponse[AvisoPublicoDTO])
+def get_avisos_publicos(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1),
+    db: Session = Depends(get_db)
+):
+    service = AvisoService(db)
+    items, total = service.get_avisos_publicos_minified(page, limit)
+    
+    meta = PaginationMeta(
+        page=page, 
+        limit=limit, 
+        total=total, 
+        total_pages=(total + limit - 1) // limit
+    )
+    data = PaginatedData(items=items, meta=meta)
+    
+    return PaginatedResponse(data=data, message="Avisos públicos obtenidos correctamente")

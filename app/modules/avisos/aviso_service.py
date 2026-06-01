@@ -143,3 +143,19 @@ class AvisoService:
         if not aviso:
             raise NotFoundError("Aviso no encontrado")
         return aviso
+
+    def get_avisos_publicos_minified(self, page: int, limit: int):
+        skip = (page - 1) * limit
+        items = self.repository.get_avisos_publicos_minified(skip, limit)
+        total = self.repository.count_public(filters={})
+        
+        mapped_items = [
+            {
+                "prioridad": item.prioridad.value if hasattr(item.prioridad, 'value') else item.prioridad,
+                "titulo": item.titulo,
+                "descripcion": item.descripcion,
+                "tipo": item.tipo.value if hasattr(item.tipo, 'value') else item.tipo
+            }
+            for item in items
+        ]
+        return mapped_items, total

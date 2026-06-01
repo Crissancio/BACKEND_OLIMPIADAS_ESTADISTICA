@@ -33,3 +33,11 @@ class AvisoResponseDTO(BaseModel):
     estado_temporal: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class AvisoPublicoDTO(BaseModel):
+    prioridad: str
+    titulo: str
+    descripcion: str
+    tipo: str
+
+    model_config = ConfigDict(from_attributes=True)
