@@ -92,13 +92,11 @@ class PersonaService:
         total = self.repository.count_colaboradores_activos_by_tipo(tipo)
         items = [
             {
-                "id_colaborador": colaborador.id_colaborador,
                 "nombres": persona.nombres,
                 "paterno": persona.paterno,
                 "materno": persona.materno,
                 "presentacion": colaborador.presentacion,
                 "rol": colaborador.rol,
-                "tipo": colaborador.tipo,
                 "correo": colaborador.correo,
                 "perfil": colaborador.perfil
             } 
