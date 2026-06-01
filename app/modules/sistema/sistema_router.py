@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
-
+from math import ceil
 from app.db.database import get_db
 from app.core.dependencies import get_current_admin
 from app.core.responses import PaginatedData, PaginatedResponse, ResponseBase, PaginationMeta
@@ -102,14 +102,23 @@ def obtener_actividad_reciente(
     
     return PaginatedResponse(data=data, message="Feed de actividad reciente obtenido correctamente")
 
-@router.get(
-    "/eventos-proximos",
-    response_model=list[EventoProximoDTO]
-)
+@router.get("/eventos-proximos", response_model=PaginatedResponse[EventoProximoDTO])
 def get_eventos_proximos(
-    limit: int = 10,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
 ):
     service = SistemaService(db)
-    return service.get_eventos_proximos(limit)
+    items, total = service.get_eventos_proximos(page=page, limit=limit)
+    return PaginatedResponse(
+        data=PaginatedData(
+            items=items,
+            meta=PaginationMeta(
+                page=page,
+                limit=limit,
+                total=total,
+                total_pages=ceil(total / limit) if total else 1
+            )
+        ),
+        message="Eventos próximos obtenidos correctamente"
+    )

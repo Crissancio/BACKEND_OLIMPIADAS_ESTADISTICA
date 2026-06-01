@@ -129,7 +129,11 @@ class SistemaService:
             
         return mapped_items, total
 
-    def get_eventos_proximos(self, limit: int = 10):
+    def get_eventos_proximos(
+        self,
+        page: int = 1,
+        limit: int = 10
+    ):
 
         now = datetime.now()
         eventos = []
@@ -241,4 +245,11 @@ class SistemaService:
 
         eventos.sort(key=lambda evento: evento["fecha"])
 
-        return eventos[:limit]
+        total = len(eventos)
+
+        start = (page - 1) * limit
+        end = start + limit
+
+        items = eventos[start:end]
+
+        return items, total
