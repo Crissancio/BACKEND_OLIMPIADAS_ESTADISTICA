@@ -28,7 +28,8 @@ from app.modules.convocatorias.convocatoria_schema import (
     ConvocatoriaDetalleDTO,
     ConvocatoriaListPublicDTO
 )
-
+from app.modules.categorias.categoria_schema import CategoriaDetalleDTO
+from app.modules.categorias.categoria_service import CategoriaService
 router = APIRouter(prefix="/public", tags=["public"])
 
 @router.get(
@@ -210,4 +211,13 @@ def get_public_convocatorias_list(db: Session = Depends(get_db)):
     return ResponseBase(
         data=data, 
         message="Lista de convocatorias públicas obtenidas correctamente"
+    )
+
+@router.get("{id_convocatoria}/categorias", response_model= ResponseBase[List[CategoriaDetalleDTO]])
+async def get_categorias_minified_lis(id_convocatoria: int, db: Session=Depends(get_db)):
+    service = CategoriaService(db)
+    data = service.get_by_convocatoria_minified(id_convocatoria)
+    return ResponseBase(
+        data= data,
+        message="Lista de Caregorias Minimizada publica obtenida correctamente"
     )

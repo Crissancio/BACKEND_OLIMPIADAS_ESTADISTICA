@@ -139,3 +139,19 @@ class CategoriaService:
         )
         self.sistema_repository.create_auditoria(auditoria_registro)
         return categoria
+
+    def get_by_convocatoria_minified(self, convocatoria_id: int):
+        items = self.repository.get_resumen_by_convocatoria(convocatoria_id)
+        mapped_items = []
+        for item in items:
+            if item.estado == EstadoEntidad.LISTA:
+                mapped_items.append(
+                    {
+                        "id_categoria": item.id_categoria,
+                        "nombre_categoria": item.nombre_categoria,
+                        "curso": item.curso,
+                        "nivel": item.nivel
+                    }
+                )
+            
+        return mapped_items
