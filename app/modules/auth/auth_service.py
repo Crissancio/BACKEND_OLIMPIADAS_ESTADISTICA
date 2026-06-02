@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-
+import random
+import time
 from app.core.config import settings
 from app.core.exceptions import AuthenticationError, BusinessRuleError, ConflictError, NotFoundError, UnauthorizedError, ValidationError
 from app.core.security import create_access_token, hash_password, verify_password
@@ -17,10 +18,11 @@ class AuthService:
 
     def login(self, data: LoginDTO):
         admin = self.repository.get_admin_by_correo(data.correo)
-        if not admin or not verify_password(data.contrasena, admin.contrasena):
+        if not admin or admin.estado != EstadoAdministrador.ACTIVO or not verify_password(data.contrasena, admin.contrasena):
+            time.sleep(
+               random.uniform(0.8, 1.5)
+            )
             raise AuthenticationError("Credenciales invalidas")
-        if admin.estado != EstadoAdministrador.ACTIVO:
-            raise AuthenticationError("Administrador inactivo")
 
         access_token = create_access_token(admin.id_administrador)
 

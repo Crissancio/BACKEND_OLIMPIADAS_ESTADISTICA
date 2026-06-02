@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import bearer_scheme, get_current_admin
+from app.core.dependencies import bearer_scheme, get_current_admin, limiter, verify_bot_protection
 from app.core.exceptions import UnauthorizedError
 from app.core.responses import ResponseBase
 from app.core.security import decode_access_token
@@ -20,16 +20,27 @@ from app.modules.auth.auth_schema import (
 )
 from app.modules.auth.auth_service import AuthService
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=ResponseBase[TokenDataDTO])
-def login(data: LoginDTO, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(
+    request: Request,
+    data: LoginDTO,
+    db: Session = Depends(get_db),
+):
+    await verify_bot_protection(
+        cf_turnstile_response=data.cf_turnstile_response,
+        username_hp=data.username_hp,
+        client_ip=request.client.host,
+    )
     service = AuthService(db)
     token_data = service.login(data)
-    return ResponseBase(data=token_data, message="Autenticacion exitosa")
-
+    return ResponseBase(
+        data=token_data,
+        message="Autenticacion exitosa"
+    )
 
 @router.post("/admins", response_model=ResponseBase[UsuarioAutenticadoDTO])
 def registrar_admin(

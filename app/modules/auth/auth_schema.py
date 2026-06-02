@@ -1,11 +1,16 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.auth.auth_model import EstadoAdministrador
 
 class LoginDTO(BaseModel):
-    correo: str
-    contrasena: str
+    correo: EmailStr
+    contrasena: str = Field(
+        min_length=8,
+        max_length=128
+    )
 
+    cf_turnstile_response: str
+    username_hp: str = ""
 
 class AdminCreateDTO(BaseModel):
     nombre: str
