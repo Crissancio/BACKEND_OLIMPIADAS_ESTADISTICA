@@ -28,7 +28,8 @@ def listar_logs(
     envio_end: Optional[datetime] = None,
     intento_start: Optional[datetime] = None,
     intento_end: Optional[datetime] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = EmailLogService(db)
     items, total = service.listar_logs(

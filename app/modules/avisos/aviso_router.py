@@ -22,7 +22,8 @@ def listar_avisos_publicos(
     prioridad: Optional[AvisoPrioridad] = None,
     fecha_creacion: Optional[date] = None,
     fecha_publicacion: Optional[date] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     filters = {
         "titulo": titulo,
@@ -50,7 +51,7 @@ def listar_avisos_admin(
     fecha_creacion: Optional[date] = None,
     fecha_publicacion: Optional[date] = None,
     db: Session = Depends(get_db),
-    current_admin_id: int = Depends(get_current_admin),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     filters = {
         "titulo": titulo,
@@ -68,7 +69,7 @@ def listar_avisos_admin(
     return PaginatedResponse(data=data, message="Lista obtenida correctamente")
 
 @router.get("/{aviso_id}", response_model=ResponseBase[AvisoResponseDTO])
-def obtener_aviso(aviso_id: int, db: Session = Depends(get_db)):
+def obtener_aviso(aviso_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = AvisoService(db)
     aviso = service.get_public_by_id(aviso_id)
     return ResponseBase(data=aviso, message="Operacion exitosa")

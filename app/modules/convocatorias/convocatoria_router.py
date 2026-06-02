@@ -26,7 +26,8 @@ def listar_convocatorias(
     estado_temporal: Optional[EstadoTemporal] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = ConvocatoriaService(db)
     items, total = service.get_all(page, limit, estado, estado_temporal, start_date, end_date)
@@ -36,7 +37,7 @@ def listar_convocatorias(
 
 
 @router.get("/{convocatoria_id}", response_model=ResponseBase[ConvocatoriaResponseDTO])
-def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
+def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = ConvocatoriaService(db)
     convocatoria_dict = service.get_by_id(convocatoria_id)
     return ResponseBase(data=convocatoria_dict, message="Operación exitosa")

@@ -14,7 +14,7 @@ from app.modules.categorias.categoria_service import CategoriaService
 router = APIRouter(prefix="/categorias", tags=["categorias"])
 
 @router.get("", response_model=PaginatedResponse[CategoriaResponseDTO])
-def listar_categorias(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def listar_categorias(page: int = 1, limit: int = 10, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CategoriaService(db)
     items, total = service.get_all(page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
@@ -23,7 +23,7 @@ def listar_categorias(page: int = 1, limit: int = 10, db: Session = Depends(get_
 
 
 @router.get("/convocatoria/{convocatoria_id}", response_model=PaginatedResponse[CategoriaResponseDTO])
-def listar_categorias_por_convocatoria(convocatoria_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def listar_categorias_por_convocatoria(convocatoria_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CategoriaService(db)
     items, total = service.get_by_convocatoria(convocatoria_id, page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
@@ -32,7 +32,7 @@ def listar_categorias_por_convocatoria(convocatoria_id: int, page: int = 1, limi
 
 
 @router.get("/{categoria_id}", response_model=ResponseBase[CategoriaResponseDTO])
-def obtener_categoria(categoria_id: int, db: Session = Depends(get_db)):
+def obtener_categoria(categoria_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = CategoriaService(db)
     categoria = service.get_by_id(categoria_id)
     return ResponseBase(data=categoria, message="Operación exitosa")

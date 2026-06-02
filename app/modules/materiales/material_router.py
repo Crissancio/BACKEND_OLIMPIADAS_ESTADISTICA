@@ -31,7 +31,8 @@ def listar_materiales(
     fp_start: Optional[datetime] = None,
     fp_end: Optional[datetime] = None,
     busqueda: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = MaterialService(db)
     skip = (page - 1) * limit
@@ -42,21 +43,21 @@ def listar_materiales(
 
 
 @router.get("/convocatoria/{id_convocatoria}", response_model=ResponseBase[List[MaterialResponseDTO]])
-def obtener_por_convocatoria(id_convocatoria: int, db: Session = Depends(get_db)):
+def obtener_por_convocatoria(id_convocatoria: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = MaterialService(db)
     items = service.get_by_convocatoria(id_convocatoria)
     return ResponseBase(data=items, message="Materiales de la convocatoria")
 
 
 @router.get("/fase/{id_fase}", response_model=ResponseBase[List[MaterialResponseDTO]])
-def obtener_por_fase(id_fase: int, db: Session = Depends(get_db)):
+def obtener_por_fase(id_fase: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = MaterialService(db)
     items = service.get_by_fase(id_fase)
     return ResponseBase(data=items, message="Materiales de la fase")
 
 
 @router.get("/convocatoria/{id_convocatoria}/principal/{tipo}", response_model=ResponseBase[MaterialResponseDTO])
-def obtener_principal(id_convocatoria: int, tipo: TipoMaterialEnum, db: Session = Depends(get_db)):
+def obtener_principal(id_convocatoria: int, tipo: TipoMaterialEnum, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = MaterialService(db)
     material = service.repository.get_material_principal(id_convocatoria, tipo)
     if not material: return ResponseBase(data=None, message="No se encontró", success=False)
@@ -64,7 +65,7 @@ def obtener_principal(id_convocatoria: int, tipo: TipoMaterialEnum, db: Session 
 
 
 @router.get("/{id_material}", response_model=ResponseBase[MaterialDetalleResponseDTO])
-def obtener_material(id_material: int, db: Session = Depends(get_db)):
+def obtener_material(id_material: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = MaterialService(db)
     return ResponseBase(data=service.get_by_id(id_material), message="Operacion exitosa")
 

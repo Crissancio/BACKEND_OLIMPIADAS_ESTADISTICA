@@ -36,7 +36,8 @@ def listar_resultados(
     estado_aprobacion: Optional[Literal["APROBADO", "REPROBADO"]] = None,
     sort_by: Optional[Literal["nota", "apellido"]] = None,
     sort_order: Literal["asc", "desc"] = "desc",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
     items, total = service.get_all(id_fase_prueba, page, limit, search, estado_aprobacion, sort_by, sort_order)
@@ -50,7 +51,8 @@ def listar_aprobados_por_fase(
     id_fase_prueba: int,
     sort_by: Literal["nombre", "paterno", "materno", "ci", "resultado"] = "resultado",
     sort_order: Literal["asc", "desc"] = "desc",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = ResultadoService(db)
     items = service.get_aprobados_fase(id_fase_prueba, sort_by, sort_order)
@@ -58,7 +60,7 @@ def listar_aprobados_por_fase(
 
 
 @router.get("/{resultado_id}", response_model=ResponseBase[ResultadoResponseDTO])
-def obtener_resultado(resultado_id: int, db: Session = Depends(get_db)):
+def obtener_resultado(resultado_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = ResultadoService(db)
     resultado = service.get_by_id(resultado_id)
     return ResponseBase(data=resultado, message="Operación exitosa")

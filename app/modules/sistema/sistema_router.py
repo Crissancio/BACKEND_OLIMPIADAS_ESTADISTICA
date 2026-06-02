@@ -106,7 +106,8 @@ def obtener_actividad_reciente(
 def get_eventos_proximos(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = SistemaService(db)
     items, total = service.get_eventos_proximos(page=page, limit=limit)

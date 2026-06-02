@@ -20,7 +20,7 @@ from app.modules.fases.fase_service import FaseService
 router = APIRouter(prefix="/fases", tags=["fases"])
 
 @router.get("", response_model=PaginatedResponse[FaseResponsePolymorphic])
-def listar_fases(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def listar_fases(page: int = 1, limit: int = 10, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = FaseService(db)
     items, total = service.get_all(page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
@@ -28,7 +28,7 @@ def listar_fases(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     return PaginatedResponse(data=data, message="Lista de fases obtenida correctamente")
 
 @router.get("/{fase_id}", response_model=ResponseBase[FaseResponsePolymorphic])
-def obtener_fase(fase_id: int, db: Session = Depends(get_db)):
+def obtener_fase(fase_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = FaseService(db)
     fase = service.get_by_id(fase_id)
     return ResponseBase(data=fase, message="Fase obtenida exitosamente")
@@ -38,7 +38,8 @@ def listar_fases_por_categoria(
     categoria_id: int,
     page: int = 1,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = FaseService(db)
     items = service.get_by_id_categoria(categoria_id)
@@ -47,7 +48,7 @@ def listar_fases_por_categoria(
     return PaginatedResponse(data=data, message="Lista de fases obtenida correctamente")
 
 @router.get("/prueba/{categoria_id}/minified", response_model=ResponseBase[List[FaseMinifiedResponseDTO]])
-def listar_fases_prueba_minified(categoria_id: int, db: Session = Depends(get_db)):
+def listar_fases_prueba_minified(categoria_id: int, db: Session = Depends(get_db), current_admin_id: int = Depends(get_current_admin)):
     service = FaseService(db)
     data = service.get_pruebas_minified_by_categoria(categoria_id)
     return ResponseBase(data=data, message="Lista minimizada de fases de prueba obtenida exitosamente")

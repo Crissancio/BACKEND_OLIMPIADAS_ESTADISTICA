@@ -21,7 +21,7 @@ from app.modules.personas.persona_service import PersonaService
 router = APIRouter(prefix="/personas", tags=["personas"])
 
 @router.get("/directores", response_model=PaginatedResponse[DirectorResponseDTO])
-def listar_directores(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def listar_directores(page: int = 1, limit: int = 10, db: Session = Depends(get_db),current_admin_id: int = Depends(get_current_admin)):
     service = PersonaService(db)
     items, total = service.list_directores(page=page, limit=limit)
     meta = PaginationMeta(page=page, limit=limit, total=total, total_pages=(total + limit - 1) // limit)
@@ -83,7 +83,8 @@ def listar_colaboradores(
     tipo: Optional[TipoColaborador] = Query(None),
     rol: Optional[str] = Query(None),
     estado: Optional[EstadoPersona] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin_id: int = Depends(get_current_admin)
 ):
     service = PersonaService(db)
     items, total = service.list_colaboradores(page, limit, nombre, correo, tipo, rol, estado)
