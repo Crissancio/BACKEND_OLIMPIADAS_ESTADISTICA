@@ -9,7 +9,7 @@ from app.modules.campanias.campania_service import CampaniaService
 from app.core.responses import ResponseBase, PaginatedResponse, PaginationMeta
 from app.core.dependencies import get_current_admin
 
-router = APIRouter(prefix="/campanias", tags=["Campañas"])
+router = APIRouter(prefix="/campanias", tags=["campanias"])
 
 @router.get("/", response_model=PaginatedResponse[CampaniaResponseDTO])
 def listar_campanias(

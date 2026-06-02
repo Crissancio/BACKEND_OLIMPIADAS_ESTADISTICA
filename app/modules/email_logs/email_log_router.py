@@ -9,7 +9,7 @@ from app.modules.email_logs.email_log_service import EmailLogService
 from app.modules.email_logs.email_log_model import EstadoEmail, TipoEmail
 from app.core.responses import ResponseBase, PaginatedResponse, PaginationMeta
 
-router = APIRouter(prefix="/email-logs", tags=["Email Logs"])
+router = APIRouter(prefix="/email-logs", tags=["email_logs"])
 
 @router.get("/", response_model=PaginatedResponse[EmailLogResponseDTO])
 def listar_logs(
